@@ -1,28 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSummonerByName, getChampionMastery } from '../../lib/riot';
+import { getAccountByRiotId } from '../../lib/riot';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { name } = req.query;
+  const { gameName, tagLine } = req.query;
 
-  if (!name || typeof name !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid summoner name' });
+  if (!gameName || typeof gameName !== 'string' || !tagLine || typeof tagLine !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid gameName or tagLine' });
   }
 
   try {
-    const summoner = await getSummonerByName(name);
-    const mastery = await getChampionMastery(summoner.id);
-    const top3 = mastery.slice(0, 3);
-
-    res.status(200).json({
-      name: summoner.name,
-      level: summoner.summonerLevel,
-      topChampions: top3.map((c: any) => ({
-        champId: c.championId,
-        masteryPoints: c.championPoints,
-      })),
-    });
+    const account = await getAccountByRiotId(gameName, tagLine);
+    res.status(200).json(account);
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch summoner data' });
+    res.status(500).json({ error: 'Failed to fetch account data' });
   }
 }
