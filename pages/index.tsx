@@ -11,6 +11,8 @@ export default function Home() {
   const [winrateData, setWinrateData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [lobby, setLobby] = useState<{ id: string; players: any[] } | null>(null);
+  const [joinLobbyId, setJoinLobbyId] = useState('');
 
   const handleFetch = async () => {
     setLoading(true);
@@ -70,6 +72,32 @@ export default function Home() {
     }
   };
 
+  const handleCreateLobby = async () => {
+    try {
+      const res = await fetch('/api/lobby/create', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to create lobby');
+      const newLobby = await res.json();
+      setLobby(newLobby);
+    } catch (err: any) {
+      setError(err.message || 'Error creating lobby');
+    }
+  };
+
+  const handleJoinLobby = async () => {
+  try {
+    const res = await fetch('/api/lobby/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lobbyId: joinLobbyId, riotId }),
+    });
+    if (!res.ok) throw new Error('Failed to join lobby');
+    const joinedLobby = await res.json();
+    setLobby(joinedLobby);
+  } catch (err: any) {
+    setError(err.message || 'Error joining lobby');
+  }
+};
+
   return (
     <div className="p-4 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rito Account Lookup</h1>
@@ -88,6 +116,37 @@ export default function Home() {
           {loading ? 'Loading...' : 'Search'}
         </button>
       </div>
+
+      <div className="mt-4">
+        <button
+          className="bg-green-600 text-white px-4 py-2 rounded w-full"
+          onClick={handleCreateLobby}
+        >
+          Create Lobby
+        </button>
+      </div>
+
+      <div className="mt-6 border p-4 rounded">
+  <h3 className="font-semibold mb-2">Join a Lobby</h3>
+  <input
+    className="border px-2 py-1 mr-2 w-full mb-2"
+    placeholder="Enter Lobby ID"
+    value={joinLobbyId}
+    onChange={(e) => setJoinLobbyId(e.target.value)}
+  />
+  <input
+    className="border px-2 py-1 mr-2 w-full mb-2"
+    placeholder="Enter Riot ID"
+    value={riotId}
+    onChange={(e) => setRiotId(e.target.value)}
+  />
+  <button
+    className="bg-purple-600 text-white px-4 py-2 w-full"
+    onClick={handleJoinLobby}
+  >
+    Join Lobby
+  </button>
+</div>
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
 
@@ -150,6 +209,44 @@ export default function Home() {
           </ul>
         </div>
       )}
+
+      {data && (
+        <div className="mt-6 border rounded p-4">
+          <h2 className="text-xl font-semibold mb-2">Trivia Questions for {data.gameName}#{data.tagLine}</h2>
+          <ul className="list-disc list-inside mt-4 space-y-3">
+            <li>
+              <strong>Q:</strong> What is the current rank of {data.gameName}?<br />
+              <strong>A:</strong> {rankEntries[0]?.tier || 'Unranked'} {rankEntries[0]?.rank || ''}
+            </li>
+            <li>
+              <strong>Q:</strong> Which champion does {data.gameName} have the most mastery points on?<br />
+              <strong>A:</strong> {typedChampionData[String(masteries[0]?.championId)]?.name || 'Unknown'}
+            </li>
+            <li>
+              <strong>Q:</strong> How many mastery points does {data.gameName} have on their top champion?<br />
+              <strong>A:</strong> {masteries[0]?.championPoints.toLocaleString() || 'Unknown'}
+            </li>
+            <li>
+              <strong>Q:</strong> How many unique champions did {data.gameName} play in their last 20 games?<br />
+              <strong>A:</strong> {Object.keys(winrateData?.championStats || {}).length}
+            </li>
+            <li>
+              <strong>Q:</strong> What is {data.gameName}'s overall winrate in the last 20 games?<br />
+              <strong>A:</strong> {winrateData?.winrate}% ({winrateData?.wins}W / {winrateData?.losses}L)
+            </li>
+          </ul>
+        </div>
+      )}
+
+      {lobby && (
+        <div className="mt-6 border rounded p-4">
+          <h3 className="text-lg font-semibold mb-2">Lobby Created</h3>
+          <p>Lobby ID: <code>{lobby.id}</code></p>
+          <p>Players: {lobby.players.length}</p>
+        </div>
+      )}
+
+
 
     </div>
   );

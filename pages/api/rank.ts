@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getRankedEntriesByPUUID } from '../../lib/riot';
+import { getRankedEntriesByPUUID } from './lib/riot';
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

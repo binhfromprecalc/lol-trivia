@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getWinrateByPUUID } from '../../lib/riot';
+import { getWinrateByPUUID } from './lib/riot';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { puuid, platformRegion } = req.query;
