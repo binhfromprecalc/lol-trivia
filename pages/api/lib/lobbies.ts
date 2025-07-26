@@ -1,30 +1,21 @@
-type Player = {
-  id: string;
-  name: string;
-};
+// Simple in-memory lobby store
+const lobbies: Record<string, { id: string; players: string[] }> = {};
 
-type Lobby = {
-  id: string;
-  players: Player[];
-};
-
-const lobbies: Record<string, Lobby> = {};
-
-export function createLobby(lobbyId: string): Lobby {
-  const newLobby: Lobby = { id: lobbyId, players: [] };
-  lobbies[lobbyId] = newLobby;
-  return newLobby;
+export function createLobby(): { id: string; players: string[] } {
+  const id = Math.random().toString(36).substr(2, 6); // random ID
+  const lobby = { id, players: [] };
+  lobbies[id] = lobby;
+  return lobby;
 }
 
-export function getLobby(lobbyId: string): Lobby | null {
-  return lobbies[lobbyId] || null;
+export function getLobby(id: string) {
+  return lobbies[id] || null;
 }
 
-export function joinLobby(lobbyId: string, player: Player): Lobby | null {
-  const lobby = lobbies[lobbyId];
-  if (!lobby) return null;
-  if (!lobby.players.find(p => p.id === player.id)) {
-    lobby.players.push(player);
+export function joinLobby(id: string, playerName: string) {
+  const lobby = lobbies[id];
+  if (lobby && !lobby.players.includes(playerName)) {
+    lobby.players.push(playerName);
   }
   return lobby;
 }
