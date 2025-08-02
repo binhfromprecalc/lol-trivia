@@ -1,10 +1,11 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import socket from '../utils/socket';
+import type { Lobby } from '../api/lib/lobbies';
 
 export default function LobbyPage() {
   const { lobbyId } = useRouter().query;
-  const [lobby, setLobby] = useState<{ id: string; players: string[] } | null>(null);
+  const [lobby, setLobby] = useState<Lobby | null>(null);
 
   // Fetch lobby data and setup WebSocket on mount
   useEffect(() => {
@@ -38,11 +39,16 @@ export default function LobbyPage() {
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h1 className="text-2xl font-bold mb-4 text-center">Lobby ID: <code>{lobby.id}</code></h1>
+      <h1 className="text-2xl font-bold mb-4 text-center">
+        Lobby ID: <code>{lobby.id}</code>
+      </h1>
+      <p className="text-center text-sm text-gray-600 mb-4">
+        Host: <strong>{lobby.host}</strong>
+      </p>
 
       <h2 className="text-lg font-semibold mb-2">Players:</h2>
       <ul className="list-disc list-inside mb-6 border p-3 rounded max-h-60 overflow-auto">
-        {lobby.players.length > 0 ? (
+        {lobby?.players?.length > 0 ? (
           lobby.players.map((p, idx) => (
             <li key={idx}>{p}</li>
           ))

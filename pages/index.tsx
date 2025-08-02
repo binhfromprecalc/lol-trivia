@@ -30,21 +30,36 @@ export default function Home() {
       return;
     }
 
-    const riotIdSlug = `${gameName}-${tagLine}`;
+    const riotIdSlug = encodeURIComponent(`${gameName}-${tagLine}`) ;
     router.push(`/user/${riotIdSlug}`);
   };
 
   const handleCreateLobby = async () => {
-    try {
-      const res = await fetch('/api/lobby/create', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to create lobby');
-      const newLobby = await res.json();
-      setLobby(newLobby);
-      router.push(`/lobby/${newLobby.id}`);
-    } catch (err: any) {
-      setError(err.message || 'Error creating lobby');
-    }
-  };
+  if (!riotId.includes('#')) {
+    setError('Please enter a valid Riot ID (e.g. Faker#KR) before creating a lobby.');
+    return;
+  }
+
+  try {
+    const [gameName, tagLine] = riotId.split('#');
+
+    const res = await fetch('/api/lobby/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player: { name: `${gameName}#${tagLine}`, id: `${gameName}-${tagLine}` }
+      }),
+    });
+
+    if (!res.ok) throw new Error('Failed to create lobby');
+    const newLobby = await res.json();
+    setLobby(newLobby);
+    router.push(`/lobby/${newLobby.id}`);
+  } catch (err: any) {
+    setError(err.message || 'Error creating lobby');
+  }
+};
+
 
   const handleJoinLobby = async () => {
     try {

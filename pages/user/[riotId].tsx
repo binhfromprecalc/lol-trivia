@@ -4,6 +4,7 @@ import championData from '../data/champions.json'; // adjust path if needed
 const typedChampionData: Record<string, { name: string }> = championData;
 export default function RiotProfilePage() {
   const router = useRouter();
+  console.log('Router:', router.query);
   const { riotId } = router.query;
   const [data, setData] = useState<any>(null);
   const [gameName, setGameName] = useState('');
@@ -13,7 +14,6 @@ export default function RiotProfilePage() {
   const [winrateData, setWinrateData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [lobby, setLobby] = useState<{ id: string; players: any[] } | null>(null);
 
   const specialCases: Record<string, string>= {
       "Wukong": "MonkeyKing",
@@ -48,7 +48,8 @@ export default function RiotProfilePage() {
     setWinrateData(null);
 
     try {
-      const res = await fetch(`/api/summoner?gameName=${encodeURIComponent(name)}&tagLine=${encodeURIComponent(tag)}`);
+      console.log('Parsed Riot ID:', { name, tag });
+      const res = await fetch(`/api/summoner?gameName=${name}&tagLine=${tag}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Unknown error');
       setData(result);
@@ -91,7 +92,6 @@ export default function RiotProfilePage() {
       setLoading(false);
     }
   };
-
   fetchData();
 }, [router.isReady, riotId]);
 
