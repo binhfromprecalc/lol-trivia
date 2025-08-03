@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import socket from './utils/socket';
+import './index.css';
 
 export default function Home() {
   const [riotId, setRiotId] = useState('');
@@ -83,15 +84,15 @@ export default function Home() {
         <h1 className="text-2xl font-bold mb-6 text-center">Rito Account Lookup</h1>
 
         {/* Riot ID Input */}
-        <div className="mb-4">
+        <div className="w-full p-4 flex flex-col items-center">
           <input
-            className="border border-gray-300 px-4 py-3 text-lg w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-1/2 rounded-2xl border border-gray-300 bg-white p-3 text-sm shadow-sm focus:border-black focus:outline-none"
             placeholder="Enter Riot ID (e.g. Faker#KR)"
             value={riotId}
             onChange={(e) => setRiotId(e.target.value)}
           />
           <button
-            className="bg-blue-600 text-white mt-3 py-3 w-full rounded text-lg hover:bg-blue-700 transition disabled:opacity-50"
+            className="bg-blue-600 text-white mt-3 px-6 py-2 rounded text-sm hover:bg-blue-700 transition disabled:opacity-50"
             onClick={handleFetch}
             disabled={loading}
           >
@@ -100,26 +101,26 @@ export default function Home() {
         </div>
 
         {/* Create Lobby */}
-        <div className="mt-4">
-          <button
-            className="bg-green-600 text-white px-4 py-2 rounded w-full"
-            onClick={handleCreateLobby}
-          >
-            Create Lobby
-          </button>
+        <div className="mt-4 flex justify-center">
+            <button
+              className="bg-green-600 text-white px-6 py-2 rounded text-sm"
+              onClick={handleCreateLobby}
+            >
+              Create Lobby
+            </button>
         </div>
 
         {/* Join Lobby */}
-        <div className="mt-6 border p-4 rounded">
+        <div className="mt-6 p-4 rounded flex flex-col items-center">
           <h3 className="font-semibold mb-2">Join a Lobby</h3>
           <input
-            className="border px-2 py-2 w-full mb-2 rounded"
+            className="border px-2 py-2 w-1/2 mb-2 rounded text-sm"
             placeholder="Enter Lobby ID"
             value={joinLobbyId}
             onChange={(e) => setJoinLobbyId(e.target.value)}
           />
           <button
-            className="bg-purple-600 text-white px-4 py-2 w-full rounded"
+            className="bg-purple-600 text-white px-6 py-2 rounded text-sm"
             onClick={handleJoinLobby}
           >
             Join Lobby
