@@ -22,7 +22,15 @@ export async function getChampionMasteriesByPUUID(puuid: string, platformRegion:
     `https://${platformRegion}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}`,
     { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
   );
-  return res.data;
+  const masteries = res.data;
+  const champMasteries: Record<number, {championLevel: number, championPoints: number}> = {};
+  for(const champion of masteries) {
+    champMasteries[champion.championId] = {
+      championLevel: champion.championLevel,
+      championPoints: champion.championPoints
+    }
+  }
+  return champMasteries;
 }
 
 /**
@@ -52,6 +60,10 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
   const matchIds: string[] = matchIdsRes.data;
 
   let wins = 0;
+  let totalDeaths = 0;
+  let totalKills = 0;
+  let mostKills = 0;
+  let mostDeaths = 0;
   const championsPlayed: Record<number, number> = {}; // championId -> count
   const championStats: Record<number, { games: number; wins: number; kills: number; deaths: number; assists: number }> = {};
 
@@ -72,8 +84,11 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       const champId = participant.championId;
       const won = participant.win;
       const kills = participant.kills;
+      if (kills > mostKills) mostKills = kills;
+      if (participant.deaths > mostDeaths) mostDeaths = participant.deaths;
       const deaths = participant.deaths
-
+      totalDeaths += deaths;
+      totalKills += kills;
       if (won) wins++;
 
       championsPlayed[champId] = (championsPlayed[champId] || 0) + 1;
@@ -95,6 +110,10 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     gamesAnalyzed: matchIds.length,
     winrate: winrate.toFixed(2),
     wins,
+    totalDeaths,
+    mostDeaths,
+    totalKills,
+    mostKills,
     losses: matchIds.length - wins,
     championsPlayed,
     championStats,

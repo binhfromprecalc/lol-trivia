@@ -47,7 +47,7 @@ export default function LobbyPage() {
       </p>
 
       <h2 className="text-lg font-semibold mb-2">Players:</h2>
-      <ul className="list-disc list-inside mb-6 border p-3 rounded max-h-60 overflow-auto">
+      <ul className="list-disc list-inside mb-6 p-3 rounded max-h-60 overflow-auto">
         {lobby?.players?.length > 0 ? (
           lobby.players.map((p, idx) => (
             <li key={idx}>{p}</li>
@@ -58,7 +58,7 @@ export default function LobbyPage() {
       </ul>
 
       <button
-        className="bg-blue-600 text-white px-4 py-2 w-full rounded hover:bg-blue-700 transition"
+        className="bg-blue-600 text-center px-4 py-2 w-1/4 rounded hover:bg-blue-700 transition"
         onClick={() => console.log('Start button clicked')}
       >
         Start Game

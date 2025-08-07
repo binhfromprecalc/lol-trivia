@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import championData from '../data/champions.json'; // adjust path if needed
+import championData from '../data/champions.json'; 
 const typedChampionData: Record<string, { name: string }> = championData;
 export default function RiotProfilePage() {
   const router = useRouter();
@@ -96,11 +96,12 @@ export default function RiotProfilePage() {
 }, [router.isReady, riotId]);
 
 
+
   return (
     <div style={{ justifyContent: 'center' }}>
       <h1>Riot Profile for {gameName}#{tagLine}</h1>
       {data && (
-        <div className="mt-6 border rounded p-4">
+        <div className="mt-6 rounded p-4 bg-gray-100">
           <h2 className="text-xl font-semibold">{data.gameName}#{data.tagLine}</h2>
           <p>PUUID: {data.puuid}</p>
         </div>
@@ -110,7 +111,7 @@ export default function RiotProfilePage() {
       {rankEntries.length > 0 && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold mb-2">Ranked Info</h3>
-          <ul className="list-disc list-inside max-h-64 overflow-auto border rounded p-2">
+          <ul className="list-disc list-inside max-h-64 overflow-auto rounded p-2">
             {rankEntries.map((entry, idx) => (
               <li key={idx}>
                 {entry.queueType}: {entry.tier} {entry.rank} — {entry.leaguePoints} LP ({entry.wins}W/{entry.losses}L) — {(entry.wins / (entry.wins + entry.losses) * 100).toFixed(2)}%
@@ -129,7 +130,11 @@ export default function RiotProfilePage() {
           <p>
             {winrateData.winrate}% — {winrateData.wins}W / {winrateData.losses}L
           </p>
-          <ul className="list-disc list-inside max-h-64 overflow-auto border rounded p-2 mt-2">
+          <p>Total Kills: {winrateData.totalKills}  </p>
+          <p>Total Deaths: {winrateData.totalDeaths}</p>
+          <p>Most Kills in a Game: {winrateData.mostKills}</p>
+          <p>Most Deaths in a Game: {winrateData.mostDeaths}</p>
+          <ul className="list-disc list-inside max-h-64 overflow-auto rounded p-2 mt-2">
             {Object.entries(winrateData.championStats).map(([champId, stats]: any, idx) => {
               const champName = typedChampionData[champId]?.name || `Unknown (${champId})`;
               const winrate = (stats.wins / stats.games) * 100;
@@ -145,21 +150,69 @@ export default function RiotProfilePage() {
       )}
 
       {/* Masteries */}
-      {masteries.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">Champion Masteries</h3>
-          <ul className="list-disc list-inside max-h-64 overflow-auto border rounded p-2">
-            {masteries.map((m, idx) => {
-              const champName = typedChampionData[String(m.championId)]?.name || `Unknown (${m.championId})`;
-              return (
-                <li key={idx}>
-                  {champName} — Level: {m.championLevel}, Points: {m.championPoints.toLocaleString()}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {masteries && Object.keys(masteries).length > 0 && (() => {
+  // Inline IIFE to calculate lowest mastery inside JSX
+  const entries = Object.entries(masteries);
+  const [lowestChampId, lowestData] = entries.reduce(
+    (minEntry, currEntry) =>
+      currEntry[1].championPoints < minEntry[1].championPoints ? currEntry : minEntry
+  );
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-lg font-semibold mb-2">Champion Masteries</h3>
+
+      {/*Lowest Mastery Callout */}
+      <div className="mb-3 p-3 bg-yellow-100 rounded text-sm">
+        🐢 <strong>Lowest Mastery Champion:</strong>{' '}
+        {typedChampionData[lowestChampId]?.name || `Unknown (${lowestChampId})`} —{' '}
+        {lowestData.championPoints.toLocaleString()} points
+      </div>
+
+      <ul className="list-none max-h-64 overflow-auto rounded p-2">
+  {entries
+    .sort(([, a], [, b]) => b.championPoints - a.championPoints)
+    .map(([champId, data], idx) => {
+      const champName = typedChampionData[champId]?.name || `Unknown (${champId})`;
+
+      // Use your specialCases/sanitize logic here
+      const specialCases: Record<string,string> = {
+        "Wukong": "MonkeyKing",
+        "Nunu & Willump": "Nunu",
+        "Cho'Gath": "Chogath",
+        "Kha'Zix": "Khazix",
+        "Vel'Koz": "Velkoz",
+        "Jarvan IV": "JarvanIV",
+        "Dr. Mundo": "DrMundo",
+        "Rek'Sai": "RekSai",
+        "Bel'Veth": "Belveth",
+        "Renata Glasc": "Renata",
+        "Kai'Sa": "Kaisa",
+        "LeBlanc": "Leblanc",
+      };
+      const sanitizedChampName = specialCases[champName] || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+
+      return (
+        <li key={idx} className="flex items-center">
+          <img
+            src={`/img/champions/${sanitizedChampName}.png`}
+            alt={champName}
+            width={48}
+            height ={48}
+          />
+          <span>
+            {champName} — Level: {data.championLevel}, Points: {data.championPoints.toLocaleString()}
+          </span>
+        </li>
+      );
+    })}
+</ul>
+
+    </div>
+  );
+})()}
+
+
     </div>
   );
 }

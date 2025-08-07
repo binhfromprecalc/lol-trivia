@@ -84,9 +84,9 @@ export default function Home() {
         <h1 className="text-2xl font-bold mb-6 text-center">Rito Account Lookup</h1>
 
         {/* Riot ID Input */}
-        <div className="w-full p-4 flex flex-col items-center">
+        <div className="w-full p-4 flex items-center justify-center gap-3">
           <input
-            className="w-1/2 rounded-2xl border border-gray-300 bg-white p-3 text-sm shadow-sm focus:border-black focus:outline-none"
+            className="w-1/4 rounded-2xl border border-gray-300 bg-white p-3 text-sm shadow-sm focus:border-black focus:outline-none"
             placeholder="Enter Riot ID (e.g. Faker#KR)"
             value={riotId}
             onChange={(e) => setRiotId(e.target.value)}
@@ -98,11 +98,7 @@ export default function Home() {
           >
             {loading ? 'Loading...' : 'Search'}
           </button>
-        </div>
-
-        {/* Create Lobby */}
-        <div className="mt-4 flex justify-center">
-            <button
+          <button
               className="bg-green-600 text-white px-6 py-2 rounded text-sm"
               onClick={handleCreateLobby}
             >
@@ -111,23 +107,22 @@ export default function Home() {
         </div>
 
         {/* Join Lobby */}
-        <div className="mt-6 p-4 rounded flex flex-col items-center">
-          <h3 className="font-semibold mb-2">Join a Lobby</h3>
+        <div className="mt-6 p-4 flex items-center justify-center">
           <input
-            className="border px-2 py-2 w-1/2 mb-2 rounded text-sm"
+            className="w-1/4 rounded-2xl border border-gray-300 bg-white p-3 text-sm shadow-sm focus:border-black focus:outline-none"
             placeholder="Enter Lobby ID"
             value={joinLobbyId}
             onChange={(e) => setJoinLobbyId(e.target.value)}
           />
           <button
-            className="bg-purple-600 text-white px-6 py-2 rounded text-sm"
+            className="bg-blue-600 text-white mt-3 px-6 py-2 rounded text-sm hover:bg-blue-700 transition disabled:opacity-50"
             onClick={handleJoinLobby}
           >
             Join Lobby
           </button>
         </div>
 
-        {error && <p className="text-red-500 mt-4">{error}</p>}
+        {error && <p className="mt-6 p-4 flex items-center justify-center">{error}</p>}
       </div>
     </div>
   );
