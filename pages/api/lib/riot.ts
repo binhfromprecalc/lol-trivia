@@ -14,6 +14,14 @@ export async function getAccountByRiotId(gameName: string, tagLine: string) {
   return res.data;
 }
 
+export async function getSummonerByPUUID(puuid: string) {
+  const res = await axios.get(
+    `https://${'na1'}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`,
+    { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
+  );
+  return res.data;
+}
+
 /** 
  * Fetch champion masteries by PUUID.
  */

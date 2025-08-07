@@ -1,15 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getAccountByRiotId } from './lib/riot';
+import { getSummonerByPUUID } from './lib/riot';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { gameName, tagLine } = req.query;
+  const {puuid } = req.query;
 
-  if (!gameName || typeof gameName !== 'string' || !tagLine || typeof tagLine !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid gameName or tagLine' });
+  if (!puuid || typeof puuid !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid puuid' });
   }
 
   try {
-    const account = await getAccountByRiotId(gameName, tagLine);
+    const account = await getSummonerByPUUID(puuid);
     res.status(200).json(account);
   } catch (error: any) {
     console.error(error);
