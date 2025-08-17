@@ -2,67 +2,112 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import socket from '../utils/socket';
 import type { Lobby } from '../api/lib/lobbies';
+import './lobby.css'; // ✅ Import your CSS file
+
+interface ChatMessage {
+  player: string;
+  text: string;
+}
 
 export default function LobbyPage() {
   const { lobbyId } = useRouter().query;
   const [lobby, setLobby] = useState<Lobby | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
 
-  // Fetch lobby data and setup WebSocket on mount
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== 'string') return;
 
-    // Initial lobby fetch
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
       .then(setLobby)
       .catch(console.error);
 
-    // Join the WebSocket room
     socket.emit('join-lobby', { lobbyId });
 
-    // Update player list when someone joins
     socket.on('player-joined', ({ playerName }: { playerName: string }) => {
       setLobby((prev) => {
         if (!prev) return null;
-        // Avoid duplicate names
         if (prev.players.includes(playerName)) return prev;
         return { ...prev, players: [...prev.players, playerName] };
       });
     });
 
+    socket.on('chat-message', (msg: ChatMessage) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
     return () => {
       socket.off('player-joined');
+      socket.off('chat-message');
     };
   }, [lobbyId]);
 
-  if (!lobby) return <p className="text-center mt-10 text-lg">Loading lobby...</p>;
+  const sendMessage = () => {
+    if (!newMessage.trim() || !lobbyId || typeof lobbyId !== 'string') return;
+    const msg: ChatMessage = {
+      player: "You",
+      text: newMessage,
+    };
+    socket.emit('chat-message', { text: newMessage });
+    setMessages((prev) => [...prev, msg]);
+    setNewMessage('');
+  };
+
+  if (!lobby) return <p className="loading">Loading lobby...</p>;
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h1 className="text-2xl font-bold mb-4 text-center">
+    <div className="lobby-container">
+      <h1 className="lobby-title">
         Lobby ID: <code>{lobby.id}</code>
       </h1>
-      <p className="text-center text-sm text-gray-600 mb-4">
+      <p className="lobby-host">
         Host: <strong>{lobby.host}</strong>
       </p>
 
-      <h2 className="text-lg font-semibold mb-2">Players:</h2>
-      <ul className="list-disc list-inside mb-6 p-3 rounded max-h-60 overflow-auto">
+      {/* Players list */}
+      <h2 className="section-title">Players:</h2>
+      <ul className="players-list">
         {lobby?.players?.length > 0 ? (
           lobby.players.map((p, idx) => (
-            <li key={idx}>{p}</li>
+            <li key={idx} className="player-item">{p}</li>
           ))
         ) : (
-          <p className="italic text-gray-500">No players yet...</p>
+          <p className="empty-text">No players yet...</p>
         )}
       </ul>
 
+      {/* Start button */}
       <button
-        className="bg-blue-600 text-center px-4 py-2 w-1/4 rounded hover:bg-blue-700 transition"
+        className="start-button"
         onClick={() => console.log('Start button clicked')}
       >
         Start Game
       </button>
+
+      {/* Chat box */}
+      <div className="chat-section">
+        <h2 className="section-title">Chat:</h2>
+        <div id="chat-messages" className="chat-messages">
+          {messages.map((m, idx) => (
+            <div key={idx} className="chat-message">
+              <span className="chat-player">{m.player}: </span>
+              <span>{m.text}</span>
+            </div>
+          ))}
+        </div>
+        <div className="chat-input-container">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            className="chat-input"
+            placeholder="Type a message..."
+          />
+          <button className="send-button" onClick={sendMessage}>Send</button>
+        </div>
+      </div>
     </div>
   );
 }

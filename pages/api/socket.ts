@@ -15,6 +15,14 @@ const ioHandler = (_: NextApiRequest, res: any) => {
         socket.to(lobbyId).emit('player-joined', { playerName });
       });
 
+      socket.on("chat-message", ({ lobbyId, text }) => {
+        io.to(lobbyId).emit("chat-message", {
+          player: socket.id, 
+          text,
+          timestamp: Date.now(),
+        });
+      });
+
       socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
       });

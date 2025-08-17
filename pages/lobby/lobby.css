@@ -1,0 +1,124 @@
+/* Main container */
+.lobby-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+  font-family: Arial, sans-serif;
+}
+
+/* Titles */
+.lobby-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.lobby-host {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 16px 0 8px 0;
+}
+
+/* Players list */
+.players-list {
+  list-style: disc inside;
+  padding: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.player-item {
+  margin: 4px 0;
+}
+
+.empty-text {
+  font-style: italic;
+  color: #888;
+}
+
+/* Start button */
+.start-button {
+  display: block;
+  margin: 0 auto 24px auto;
+  padding: 10px 20px;
+  background: #2d9d4d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.start-button:hover {
+  background: #22803c;
+}
+
+/* Chat */
+.chat-section {
+  margin-top: 20px;
+}
+
+.chat-messages {
+  padding: 12px;
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f9f9f9;
+  margin-bottom: 10px;
+}
+
+.chat-message {
+  margin-bottom: 6px;
+}
+
+.chat-player {
+  font-weight: bold;
+}
+
+/* Chat input */
+.chat-input-container {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.send-button {
+  padding: 8px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.send-button:hover {
+  background: #1e4fc7;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 16px;
+  color: #555;
+}

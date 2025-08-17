@@ -1,0 +1,96 @@
+.profile-container {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.profile-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.loading-text {
+  text-align: center;
+  color: #555;
+}
+
+.error-text {
+  text-align: center;
+  color: red;
+  margin: 12px 0;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  padding: 16px;
+  border-radius: 8px;
+  gap: 16px;
+}
+
+.profile-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Sections */
+.section {
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Lists */
+.list-box {
+  list-style: disc inside;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.mastery-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.mastery-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.champion-icon {
+  width: 48px;
+  height: 48px;
+  margin-right: 10px;
+  border-radius: 6px;
+}
+
+/* Callout */
+.callout {
+  background: #fff9c4;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
