@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import socket from '../utils/socket';
 import type { Lobby } from '../api/lib/lobbies';
-import './lobby.css'; // ✅ Import your CSS file
+import './lobby.css'; 
 
 interface ChatMessage {
   player: string;
@@ -16,43 +16,47 @@ export default function LobbyPage() {
   const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
-    if (!lobbyId || typeof lobbyId !== 'string') return;
+  if (!lobbyId || typeof lobbyId !== 'string') return;
 
-    fetch(`/api/lobby/${lobbyId}`)
-      .then((res) => res.json())
-      .then(setLobby)
-      .catch(console.error);
+  // Fetch lobby data
+  fetch(`/api/lobby/${lobbyId}`)
+    .then((res) => res.json())
+    .then(setLobby)
+    .catch(console.error);
 
-    socket.emit('join-lobby', { lobbyId });
+  // Get player name from localStorage
+  const riotId = localStorage.getItem('riotId');
+  if (riotId) {
+    socket.emit('join-lobby', { lobbyId, playerName: riotId });
+  }
 
-    socket.on('player-joined', ({ playerName }: { playerName: string }) => {
-      setLobby((prev) => {
-        if (!prev) return null;
-        if (prev.players.includes(playerName)) return prev;
-        return { ...prev, players: [...prev.players, playerName] };
-      });
+  // Listen for player join events
+  socket.on('player-joined', ({ playerName }: { playerName: string }) => {
+    setLobby((prev) => {
+      if (!prev) return null;
+      if (prev.players.includes(playerName)) return prev;
+      return { ...prev, players: [...prev.players, playerName] };
     });
+  });
 
-    socket.on('chat-message', (msg: ChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+  // Listen for chat messages from server
+  socket.on('chat-message', (msg: ChatMessage) => {
+    setMessages((prev) => [...prev, msg]);
+  });
 
-    return () => {
-      socket.off('player-joined');
-      socket.off('chat-message');
-    };
-  }, [lobbyId]);
+  return () => {
+    socket.off('player-joined');
+    socket.off('chat-message');
+  };
+}, [lobbyId]);
+
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !lobbyId || typeof lobbyId !== 'string') return;
-    const msg: ChatMessage = {
-      player: "You",
-      text: newMessage,
-    };
-    socket.emit('chat-message', { text: newMessage });
-    setMessages((prev) => [...prev, msg]);
-    setNewMessage('');
-  };
+  if (!newMessage.trim() || !lobbyId || typeof lobbyId !== 'string') return;
+  socket.emit('chat-message', { lobbyId, text: newMessage }); // include lobbyId
+  setNewMessage('');
+};
+
 
   if (!lobby) return <p className="loading">Loading lobby...</p>;
 

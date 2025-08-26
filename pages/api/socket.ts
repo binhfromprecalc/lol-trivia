@@ -12,12 +12,14 @@ const ioHandler = (_: NextApiRequest, res: any) => {
 
       socket.on('join-lobby', ({ lobbyId, playerName }) => {
         socket.join(lobbyId);
+        socket.data.playerName = playerName;
         socket.to(lobbyId).emit('player-joined', { playerName });
       });
 
       socket.on("chat-message", ({ lobbyId, text }) => {
+        const player = socket.data.playerName;
         io.to(lobbyId).emit("chat-message", {
-          player: socket.id, 
+          player,
           text,
           timestamp: Date.now(),
         });

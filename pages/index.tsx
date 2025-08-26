@@ -54,6 +54,7 @@ export default function Home() {
 
       if (!res.ok) throw new Error('Failed to create lobby');
       const newLobby = await res.json();
+      localStorage.setItem('riotId', riotId);
       setLobby(newLobby);
       router.push(`/lobby/${newLobby.id}`);
     } catch (err: any) {
@@ -66,9 +67,10 @@ export default function Home() {
       const res = await fetch('/api/lobby/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lobbyId: joinLobbyId, riotId }),
+        body: JSON.stringify({ lobbyId: joinLobbyId, player: riotId }),
       });
       if (!res.ok) throw new Error('Failed to join lobby');
+      localStorage.setItem('riotId', riotId);
       const joinedLobby = await res.json();
       setLobby(joinedLobby);
       router.push(`/lobby/${joinedLobby.id}`);

@@ -5,8 +5,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { lobbyId, player } = req.body;
+  console.log(lobbyId, player);
 
-  if (!lobbyId || !player?.id || !player?.name) {
+  if (!lobbyId || !player) {
     return res.status(400).json({ error: 'Missing lobbyId or player data' });
   }
 
