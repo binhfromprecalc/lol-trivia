@@ -81,6 +81,11 @@
   margin-bottom: 10px;
 }
 
+.system-message {
+  color: gray;
+  font-style: italic;
+}
+
 .chat-message {
   margin-bottom: 6px;
 }

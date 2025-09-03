@@ -1,62 +1,81 @@
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import socket from '../utils/socket';
-import type { Lobby } from '../api/lib/lobbies';
-import './lobby.css'; 
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import socket from "../utils/socket";
+import type { Lobby } from "../api/lib/lobbies";
+import "./lobby.css";
 
 interface ChatMessage {
   player: string;
   text: string;
+  system?: boolean;
 }
 
 export default function LobbyPage() {
   const { lobbyId } = useRouter().query;
   const [lobby, setLobby] = useState<Lobby | null>(null);
+  const [players, setPlayers] = useState<string[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
-  if (!lobbyId || typeof lobbyId !== 'string') return;
+    if (!lobbyId || typeof lobbyId !== "string") return;
 
-  // Fetch lobby data
-  fetch(`/api/lobby/${lobbyId}`)
-    .then((res) => res.json())
-    .then(setLobby)
-    .catch(console.error);
+    // Fetch initial lobby data
+    fetch(`/api/lobby/${lobbyId}`)
+      .then((res) => res.json())
+      .then((data: Lobby) => {
+        setLobby(data);
+        setPlayers(data.players);
+      })
+      .catch(console.error);
 
-  // Get player name from localStorage
-  const riotId = localStorage.getItem('riotId');
-  if (riotId) {
-    socket.emit('join-lobby', { lobbyId, playerName: riotId });
-  }
+    const riotId = localStorage.getItem("riotId");
+    if (riotId) {
+      socket.emit("join-lobby", { lobbyId, playerName: riotId });
+    }
 
-  // Listen for player join events
-  socket.on('player-joined', ({ playerName }: { playerName: string }) => {
-    setLobby((prev) => {
-      if (!prev) return null;
-      if (prev.players.includes(playerName)) return prev;
-      return { ...prev, players: [...prev.players, playerName] };
+    // Player joined
+    const handlePlayerJoined = ({ playerName }: { playerName: string }) => {
+      setPlayers((prev) => (prev.includes(playerName) ? prev : [...prev, playerName]));
+    };
+    socket.on("player-joined", handlePlayerJoined);
+
+    socket.on('lobby-state', ({ players }) => {
+      setLobby(prev => prev ? { ...prev, players } : prev);
     });
-  });
 
-  // Listen for chat messages from server
-  socket.on('chat-message', (msg: ChatMessage) => {
-    setMessages((prev) => [...prev, msg]);
-  });
+    // Player left
+    const handlePlayerLeft = ({ playerName }: { playerName: string }) => {
+      setPlayers((prev) => prev.filter((p) => p !== playerName));
+    };
+    socket.on("player-left", handlePlayerLeft);
+    
+    // Chat messages
+    const handleChatMessage = (msg: ChatMessage) => {
+      setMessages((prev) => [...prev, msg]);
+    };
+    socket.on("chat-message", handleChatMessage);
 
-  return () => {
-    socket.off('player-joined');
-    socket.off('chat-message');
-  };
-}, [lobbyId]);
+    // System messages
+    const handleSystemMessage = (msg: { text: string }) => {
+      setMessages((prev) => [...prev, { player: "SYSTEM", text: msg.text, system: true }]);
+    };
+    socket.on("system-message", handleSystemMessage);
 
+    return () => {
+      socket.off("player-joined", handlePlayerJoined);
+      socket.off("player-left", handlePlayerLeft);
+      socket.off("chat-message", handleChatMessage);
+      socket.off("system-message", handleSystemMessage);
+    };
+  }, [lobbyId]);
 
   const sendMessage = () => {
-  if (!newMessage.trim() || !lobbyId || typeof lobbyId !== 'string') return;
-  socket.emit('chat-message', { lobbyId, text: newMessage }); // include lobbyId
-  setNewMessage('');
-};
+    if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
 
+    socket.emit("chat-message", { lobbyId, text: newMessage });
+    setNewMessage("");
+  };
 
   if (!lobby) return <p className="loading">Loading lobby...</p>;
 
@@ -72,9 +91,11 @@ export default function LobbyPage() {
       {/* Players list */}
       <h2 className="section-title">Players:</h2>
       <ul className="players-list">
-        {lobby?.players?.length > 0 ? (
-          lobby.players.map((p, idx) => (
-            <li key={idx} className="player-item">{p}</li>
+        {players.length > 0 ? (
+          players.map((p, idx) => (
+            <li key={idx} className="player-item">
+              {p}
+            </li>
           ))
         ) : (
           <p className="empty-text">No players yet...</p>
@@ -82,21 +103,24 @@ export default function LobbyPage() {
       </ul>
 
       {/* Start button */}
-      <button
-        className="start-button"
-        onClick={() => console.log('Start button clicked')}
-      >
+      <button className="start-button" onClick={() => console.log("Start button clicked")}>
         Start Game
       </button>
 
-      {/* Chat box */}
+      {/* Chat section */}
       <div className="chat-section">
         <h2 className="section-title">Chat:</h2>
         <div id="chat-messages" className="chat-messages">
           {messages.map((m, idx) => (
             <div key={idx} className="chat-message">
-              <span className="chat-player">{m.player}: </span>
-              <span>{m.text}</span>
+              {m.system ? (
+                <em className="system-message">{m.text}</em>
+              ) : (
+                <>
+                  <span className="chat-player">{m.player}: </span>
+                  <span>{m.text}</span>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -109,7 +133,9 @@ export default function LobbyPage() {
             className="chat-input"
             placeholder="Type a message..."
           />
-          <button className="send-button" onClick={sendMessage}>Send</button>
+          <button className="send-button" onClick={sendMessage}>
+            Send
+          </button>
         </div>
       </div>
     </div>
