@@ -145,7 +145,7 @@ export default function RiotProfilePage() {
                 : ((stats.kills + stats.assists) / 1).toFixed(2);
               return (
                 <li key={idx}>
-                  {champName}: {stats.games} game(s), {winrate.toFixed(2)}% winrate, KDA: {kda}
+                  {champName}: {stats.games} game(s), {winrate.toFixed(0)}% winrate, KDA: {kda}
                 </li>
               );
             })}

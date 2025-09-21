@@ -16,6 +16,8 @@ export default function LobbyPage() {
   const [players, setPlayers] = useState<string[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [playerName, setPlayerName] = useState<string>("");
+  const router = useRouter();
 
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
@@ -32,6 +34,7 @@ export default function LobbyPage() {
     const riotId = localStorage.getItem("riotId");
     if (riotId) {
       socket.emit("join-lobby", { lobbyId, playerName: riotId });
+      setPlayerName(riotId);
     }
 
     // Player joined
@@ -56,6 +59,10 @@ export default function LobbyPage() {
     };
     socket.on("chat-message", handleChatMessage);
 
+    socket.on("start-game", ({lobbyId}) => {
+      router.push(`/game/${lobbyId}`);
+    })
+
     // System messages
     const handleSystemMessage = (msg: { text: string }) => {
       setMessages((prev) => [...prev, { player: "SYSTEM", text: msg.text, system: true }]);
@@ -67,6 +74,7 @@ export default function LobbyPage() {
       socket.off("player-left", handlePlayerLeft);
       socket.off("chat-message", handleChatMessage);
       socket.off("system-message", handleSystemMessage);
+      socket.off("start-game");
     };
   }, [lobbyId]);
 
@@ -75,6 +83,10 @@ export default function LobbyPage() {
 
     socket.emit("chat-message", { lobbyId, text: newMessage });
     setNewMessage("");
+  };
+
+  const handleStartGame = async () => {
+    socket.emit("start-game", { lobbyId });
   };
 
   if (!lobby) return <p className="loading">Loading lobby...</p>;
@@ -102,10 +114,14 @@ export default function LobbyPage() {
         )}
       </ul>
 
-      {/* Start button */}
-      <button className="start-button" onClick={() => console.log("Start button clicked")}>
-        Start Game
-      </button>
+      {playerName === lobby.host && !lobby.started && (
+        <button
+          className="start-button"
+          onClick={handleStartGame}
+        >
+          Start Game
+        </button>
+      )}
 
       {/* Chat section */}
       <div className="chat-section">

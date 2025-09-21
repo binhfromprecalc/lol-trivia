@@ -79,6 +79,12 @@ const ioHandler = (_: NextApiRequest, res: any) => {
         leaveLobby(socket);
         console.log("Client disconnected:", socket.id);
       });
+
+      socket.on("start-game", ({ lobbyId }) => {
+        io.to(lobbyId).emit("start-game", { lobbyId });
+      });
+
+      
     });
 
     res.socket.server.io = io;
