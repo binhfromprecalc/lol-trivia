@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import socket from '../utils/socket';
+import './game.css';
 
 export default function GamePage() {
   const { lobbyId } = useRouter().query;
@@ -30,13 +31,13 @@ export default function GamePage() {
   if (!lobbyId) return <p>Loading game...</p>;
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h1 className="text-2xl font-bold mb-4 text-center">
+    <div className="lobby-container">
+      <h1 className="lobby-title">
         Game Started — Lobby <code>{lobbyId}</code>
       </h1>
 
-      <h2 className="text-lg font-semibold mb-2">Players:</h2>
-      <ul className="list-disc list-inside mb-6 border p-3 rounded max-h-60 overflow-auto">
+      <h2 className="section-title">Players:</h2>
+      <ul className="players-list">
         {players.length > 0 ? (
           players.map((p, idx) => <li key={idx}>{p}</li>)
         ) : (
@@ -45,7 +46,7 @@ export default function GamePage() {
       </ul>
 
       <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-2">Current Question:</h2>
+        <h2 className="section-title">Current Question:</h2>
         {question ? (
           <p className="text-xl">{question}</p>
         ) : (

@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lobby {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  started   Boolean  @default(false)
+
+  // One-to-many: A lobby can have many players
+  players   Player[]
+}
+
+model Player {
+  id        String   @id @default(uuid())
+  gameName  String
+  tagLine   String
+  riotId    String   @unique
+
+  // Relation back to the lobby they’re in
+  lobbyId   String?
+  lobby     Lobby?     @relation(fields: [lobbyId], references: [id])
+
+  // One-to-many: A player can have many champion masteries
+  championMasteries ChampionMastery[]
+}
+
+model ChampionMastery {
+  id          String  @id @default(uuid())
+  championId  Int
+  points      Int
+
+  // Relation back to the player
+  playerId    String
+  player      Player  @relation(fields: [playerId], references: [id])
+}
