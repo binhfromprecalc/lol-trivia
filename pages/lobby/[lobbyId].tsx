@@ -59,6 +59,7 @@ export default function LobbyPage() {
     };
     socket.on("chat-message", handleChatMessage);
 
+    // Start game
     socket.on("start-game", ({lobbyId}) => {
       router.push(`/game/${lobbyId}`);
     })
