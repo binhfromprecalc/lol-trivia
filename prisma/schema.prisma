@@ -24,18 +24,29 @@ model Lobby {
 }
 
 model Player {
-  id        String   @id @default(uuid())
-  gameName  String
-  tagLine   String
-  riotId    String   @unique
+  id              String   @id @default(uuid())
+  gameName        String
+  tagLine         String
+  riotId          String   @unique
+  puuid           String?  
+  region          String?  
+  rank            String?  
+  winrate         Float?   // Win rate percentage
+  mostKills       Int?     // Highest kills in last 20 games
+  mostDeaths      Int?     // Highest deaths in last 20 games
 
-  // Relation back to the lobby they’re in
-  lobbyId   String?
-  lobby     Lobby?     @relation(fields: [lobbyId], references: [id])
+  profileIconId   Int?     // The summoner's profile icon ID
+  summonerLevel   Int?     // The player's summoner level
 
-  // One-to-many: A player can have many champion masteries
+  lobbyId         String?
+  lobby           Lobby?    @relation(fields: [lobbyId], references: [id])
+
   championMasteries ChampionMastery[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
+
 
 model ChampionMastery {
   id          String  @id @default(uuid())

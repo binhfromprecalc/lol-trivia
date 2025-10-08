@@ -80,9 +80,45 @@ const ioHandler = (_: NextApiRequest, res: any) => {
         console.log("Client disconnected:", socket.id);
       });
 
-      socket.on("start-game", ({ lobbyId }) => {
+      socket.on("start-game", async ({ lobbyId }) => {
+        const lobby = lobbies.get(lobbyId);
+        if (!lobby) return;
+
+        console.log(`Starting game for lobby ${lobbyId}`);
+
+        const players = Array.from(lobby.values());
+
+        try {
+          await Promise.all(
+            players.map(async (riotId) => {
+              const [gameName, tagLine] = riotId.split("#");
+              await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sync`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  gameName,
+                  tagLine,
+                  platformRegion: tagLine, // tagline as region for now
+                }),
+              });
+            })
+          );
+
+          console.log("All players synced successfully!");
+        } catch (err) {
+          console.error("Error syncing players:", err);
+          io.to(lobbyId).emit("chat-message", {
+            player: "SYSTEM",
+            text: "Error syncing player data. Please try again.",
+            system: true,
+            timestamp: Date.now(),
+          });
+          return;
+        }
+
         io.to(lobbyId).emit("start-game", { lobbyId });
       });
+
 
       
     });
