@@ -48,7 +48,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          player: { name: `${gameName}#${tagLine}`, id: `${gameName}-${tagLine}` }
+          host: { gameName, tagLine, riotId },
         }),
       });
 
@@ -63,12 +63,25 @@ export default function Home() {
   };
 
   const handleJoinLobby = async () => {
+    if (!riotId.includes('#')) {
+      setError('Please enter a valid Riot ID (e.g. binh#NA1) before joining a lobby.');
+      return;
+    }
+
     try {
+      const [gameName, tagLine] = riotId.split('#');
+
       const res = await fetch('/api/lobby/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lobbyId: joinLobbyId, player: riotId }),
+        body: JSON.stringify({
+          lobbyId: joinLobbyId,
+          gameName,
+          tagLine,
+          riotId,
+        }),
       });
+
       if (!res.ok) throw new Error('Failed to join lobby');
       localStorage.setItem('riotId', riotId);
       const joinedLobby = await res.json();

@@ -92,13 +92,12 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           await Promise.all(
             players.map(async (riotId) => {
               const [gameName, tagLine] = riotId.split("#");
-              await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sync`, {
+              await fetch(`/api/sync`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   gameName,
                   tagLine,
-                  platformRegion: tagLine, // tagline as region for now
                 }),
               });
             })

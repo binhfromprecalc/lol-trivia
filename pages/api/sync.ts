@@ -15,8 +15,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    let { gameName, tagLine, platformRegion } = req.body;
-    platformRegion = platformRegion || "na1"; // default to na1 if not provided
+    let { gameName, tagLine } = req.body;
+    const platformRegion = tagLine || "na1"; // default to na1 if not provided
 
     if (!gameName || !tagLine) {
       return res.status(400).json({ error: "Missing gameName or tagLine" });
@@ -31,30 +31,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Step 2: Upsert player info
     const player = await prisma.player.upsert({
-  where: { riotId: `${gameName}#${tagLine}` },
-  update: {
-    puuid: account.puuid,
-    region: platformRegion,
-    rank: rankedEntries?.[0]?.tier ?? "UNRANKED",
-    winrate: parseFloat(winrate.winrate),
-    mostKills: winrate.mostKills,
-    mostDeaths: winrate.mostDeaths,
-    profileIconId: summoner.profileIconId,
-    summonerLevel: summoner.summonerLevel,
-  },
-  create: {
-    riotId: `${gameName}#${tagLine}`,
-    gameName,
-    tagLine,
-    puuid: account.puuid,
-    region: platformRegion,
-    rank: rankedEntries?.[0]?.tier ?? "UNRANKED",
-    winrate: parseFloat(winrate.winrate),
-    mostKills: winrate.mostKills,
-    mostDeaths: winrate.mostDeaths,
-    profileIconId: summoner.profileIconId,
-    summonerLevel: summoner.summonerLevel,
-  },
+      where: { riotId: `${gameName}#${tagLine}` },
+      update: {
+      puuid: account.puuid,
+      region: platformRegion,
+      rank: rankedEntries?.[0]?.tier ?? "UNRANKED",
+      winrate: parseFloat(winrate.winrate),
+      mostKills: winrate.mostKills,
+      mostDeaths: winrate.mostDeaths,
+      profileIconId: summoner.profileIconId,
+      summonerLevel: summoner.summonerLevel,
+      },
+    create: {
+      riotId: `${gameName}#${tagLine}`,
+      gameName,
+      tagLine,
+      puuid: account.puuid,
+      region: platformRegion,
+      rank: rankedEntries?.[0]?.tier ?? "UNRANKED",
+      winrate: parseFloat(winrate.winrate),
+      mostKills: winrate.mostKills,
+      mostDeaths: winrate.mostDeaths,
+      profileIconId: summoner.profileIconId,
+      summonerLevel: summoner.summonerLevel,
+    },
 });
 
     // Step 3: Upsert champion masteries

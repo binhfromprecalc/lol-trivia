@@ -86,7 +86,7 @@ export default function LobbyPage() {
     setNewMessage("");
   };
 
-  const handleStartGame = async () => {
+  const handleStartGame = () => {
     socket.emit("start-game", { lobbyId });
   };
 

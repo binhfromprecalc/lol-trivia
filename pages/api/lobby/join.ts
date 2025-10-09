@@ -1,20 +1,33 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { joinLobby } from '../lib/lobbies';
+import { prisma } from '../lib/prisma';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { lobbyId, player } = req.body;
-  console.log(lobbyId, player);
-
-  if (!lobbyId || !player) {
-    return res.status(400).json({ error: 'Missing lobbyId or player data' });
+  const { lobbyCode, gameName, tagLine, riotId } = req.body;
+  if (!lobbyCode || !gameName || !tagLine || !riotId) {
+    return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const updatedLobby = joinLobby(lobbyId, player);
-  if (!updatedLobby) {
-    return res.status(404).json({ error: 'Lobby not found' });
-  }
+  try {
+    const lobby = await prisma.lobby.findUnique({
+      where: { code: lobbyCode },
+    });
 
-  res.status(200).json(updatedLobby);
+    if (!lobby) return res.status(404).json({ error: 'Lobby not found' });
+
+    const player = await prisma.player.create({
+      data: {
+        gameName,
+        tagLine,
+        riotId,
+        lobbyId: lobby.id,
+      },
+    });
+
+    res.status(200).json(player);
+  } catch (err) {
+    console.error('Error joining lobby:', err);
+    res.status(500).json({ error: 'Failed to join lobby' });
+  }
 }
