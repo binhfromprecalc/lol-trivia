@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     let { gameName, tagLine } = req.body;
-    const platformRegion = tagLine || "na1"; // default to na1 if not provided
+    const platformRegion = regionMap[tagLine]|| "na1"; // default to na1 if not provided
 
     if (!gameName || !tagLine) {
       return res.status(400).json({ error: "Missing gameName or tagLine" });
