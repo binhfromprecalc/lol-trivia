@@ -1,8 +1,8 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import socket from "../utils/socket";
-import type { Lobby } from "../api/lib/lobbies";
-import "./lobby.css";
+import socket from "@utils/socket";
+import type { Lobby } from "@lib/lobbies";
+import "@styles/lobby.css";
 
 interface ChatMessage {
   player: string;

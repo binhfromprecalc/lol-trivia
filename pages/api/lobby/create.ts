@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../lib/prisma';
+import { prisma } from '@lib/prisma';
 
 function generateLobbyCode(length = 6) {
   return Math.random().toString(36).substr(2, length).toUpperCase();

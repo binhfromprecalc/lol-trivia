@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import socket from '../utils/socket';
-import './game.css';
+import socket from '@utils/socket';
+import '@styles/game.css';
 
 export default function GamePage() {
   const { lobbyId } = useRouter().query;

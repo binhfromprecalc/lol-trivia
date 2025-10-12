@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import championData from '../data/champions.json';
-import './riotId.css'; 
+import championData from '@data/champions.json';
+import '@styles/riotId.css'; 
 
 const typedChampionData: Record<string, { name: string }> = championData;
 

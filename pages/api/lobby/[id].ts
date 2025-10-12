@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getLobby } from '../lib/lobbies';
+import { getLobby } from '@lib/lobbies';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;

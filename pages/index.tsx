@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import socket from './utils/socket';
-import './index.css'; 
+import socket from '@utils/socket';
+import '@styles/index.css'; 
 
 export default function Home() {
   const [riotId, setRiotId] = useState('');

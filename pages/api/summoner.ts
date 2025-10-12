@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSummonerByPUUID } from './lib/riot';
+import { getSummonerByPUUID } from '@lib/riot';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const {puuid } = req.query;

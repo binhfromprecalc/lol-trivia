@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "./lib/prisma";
+import { prisma } from "@lib/prisma";
 import { getAccountByRiotId, getSummonerByPUUID, getChampionMasteriesByPUUID, getRankedEntriesByPUUID,getWinrateByPUUID } from "./lib/riot";
 import { platform } from "os";
 

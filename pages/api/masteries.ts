@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getChampionMasteriesByPUUID } from './lib/riot';
+import { getChampionMasteriesByPUUID } from '@lib/riot';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { puuid, platformRegion } = req.query;
