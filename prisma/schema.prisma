@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -28,18 +21,17 @@ model Player {
   gameName        String
   tagLine         String
   riotId          String   @unique
-  puuid           String?  
-  region          String?  
-  rank            String?  
-  winrate         Float?   // Win rate percentage
-  mostKills       Int?     // Highest kills in last 20 games
-  mostDeaths      Int?     // Highest deaths in last 20 games
-
-  profileIconId   Int?     // The summoner's profile icon ID
-  summonerLevel   Int?     // The player's summoner level
+  puuid           String?
+  region          String?
+  rank            String?
+  winrate         Float?
+  mostKills       Int?
+  mostDeaths      Int?
+  profileIconId   Int?         
+  summonerLevel   Int?    
 
   lobbyId         String?
-  lobby           Lobby?    @relation(fields: [lobbyId], references: [id])
+  lobby           Lobby?        @relation(fields: [lobbyId], references: [id])
 
   championMasteries ChampionMastery[]
 
@@ -47,13 +39,13 @@ model Player {
   updatedAt       DateTime @updatedAt
 }
 
-
 model ChampionMastery {
-  id          String  @id @default(uuid())
-  championId  Int
-  points      Int
+  id             String  @id @default(uuid())
+  championId     Int
+  championPoints Int       
+  
+  playerId       String
+  player         Player   @relation(fields: [playerId], references: [id])
 
-  // Relation back to the player
-  playerId    String
-  player      Player  @relation(fields: [playerId], references: [id])
+  @@unique([playerId, championId]) 
 }

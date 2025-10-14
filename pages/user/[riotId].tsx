@@ -83,6 +83,22 @@ export default function RiotProfilePage() {
         const winrateResult = await winrateRes.json();
         if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
         setWinrateData(winrateResult);
+
+        await fetch("/api/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            account: result,
+            summoner: profileResult,
+            rankedEntries: rankResult,
+            masteries: masteryResult,
+            winrate: winrateResult,
+            gameName: name,
+            tagLine: tag,
+            region: platformRegion,
+          }),
+        });
+
       } catch (err: any) {
         setError(err.message);
       } finally {
