@@ -6,11 +6,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
   // Map platformRegion to region code used in our database
-  const regionMap: Record<string, string> = {
-          NA1: 'na1', EUW1: 'euw1', KR: 'kr', EUN1: 'eun1',
-          JP1: 'jp1', BR1: 'br1', OC1: 'oc1', RU: 'ru',
-          TR1: 'tr1', LA1: 'la1', LA2: 'la2',
-        };
   try {
     const {
       account,
@@ -20,20 +15,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       winrate,
       gameName,
       tagLine,
+      platformRegion,
     } = req.body;
 
     // Basic validation
     if (!account || !summoner || !gameName || !tagLine) {
       return res.status(400).json({ error: "Missing required player data" });
     }
-    const region = regionMap[tagLine.toUpperCase()] || 'na1';
 
     // Step 1: Upsert player info
     const player = await prisma.player.upsert({
       where: { riotId: `${gameName}#${tagLine}` },
       update: {
         puuid: account.puuid,
-        region,
+        region: platformRegion,
         rank: rankedEntries?.[0]?.tier ?? "UNRANKED",
         winrate: parseFloat(winrate.winrate),
         mostKills: winrate.mostKills,
@@ -46,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         gameName,
         tagLine,
         puuid: account.puuid,
-        region,
+        region: platformRegion,
         rank: rankedEntries?.[0]?.tier ?? "UNRANKED",
         winrate: parseFloat(winrate.winrate),
         mostKills: winrate.mostKills,

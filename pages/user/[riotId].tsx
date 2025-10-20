@@ -53,6 +53,14 @@ export default function RiotProfilePage() {
         const res = await fetch(`/api/account?gameName=${name}&tagLine=${tag}`);
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Unknown error');
+        if(result.cached) {
+          setGameName(name);
+          setTagLine(tag);
+          setProfile({summonerLevel: result.player.summonerLevel, profileIconId: result.player.profileIconId });
+          setMasteries(result.player.championMasteries);
+          setRankEntries(result.player.rankEntries);
+          setWinrateData(result.player.winrateData);
+        }
         setData(result);
         setGameName(name);
         setTagLine(tag);
