@@ -54,59 +54,61 @@ export default function RiotProfilePage() {
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Unknown error');
         if(result.cached) {
+          setData(result.player.gameName)
           setGameName(name);
           setTagLine(tag);
           setProfile({summonerLevel: result.player.summonerLevel, profileIconId: result.player.profileIconId });
           setMasteries(result.player.championMasteries);
           setRankEntries(result.player.rankEntries);
           setWinrateData(result.player.winrateData);
+        } 
+        else {
+          setData(result);
+          setGameName(name);
+          setTagLine(tag);
+
+          const regionMap: Record<string, string> = {
+            NA1: 'na1', EUW1: 'euw1', KR: 'kr', EUN1: 'eun1',
+            JP1: 'jp1', BR1: 'br1', OC1: 'oc1', RU: 'ru',
+            TR1: 'tr1', LA1: 'la1', LA2: 'la2',
+          };
+          const platformRegion = regionMap[tag.toUpperCase()] || 'na1';
+
+          const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`);
+          const profileResult = await profileRes.json();
+          if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
+          setProfile(profileResult);
+
+          const masteryRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
+          const masteryResult = await masteryRes.json();
+          if (!masteryRes.ok) throw new Error(masteryResult.error || 'Error fetching masteries');
+          setMasteries(masteryResult);
+
+          const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
+          const rankResult = await rankRes.json();
+          if (!rankRes.ok) throw new Error(rankResult.error || 'Error fetching rank info');
+          setRankEntries(rankResult);
+
+          const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
+          const winrateResult = await winrateRes.json();
+          if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
+          setWinrateData(winrateResult);
+
+          await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              account: result,
+              summoner: profileResult,
+              rankedEntries: rankResult,
+              masteries: masteryResult,
+              winrate: winrateResult,
+              gameName: name,
+              tagLine: tag,
+              region: platformRegion,
+            }),
+          });
         }
-        setData(result);
-        setGameName(name);
-        setTagLine(tag);
-
-        const regionMap: Record<string, string> = {
-          NA1: 'na1', EUW1: 'euw1', KR: 'kr', EUN1: 'eun1',
-          JP1: 'jp1', BR1: 'br1', OC1: 'oc1', RU: 'ru',
-          TR1: 'tr1', LA1: 'la1', LA2: 'la2',
-        };
-        const platformRegion = regionMap[tag.toUpperCase()] || 'na1';
-
-        const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`);
-        const profileResult = await profileRes.json();
-        if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
-        setProfile(profileResult);
-
-        const masteryRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
-        const masteryResult = await masteryRes.json();
-        if (!masteryRes.ok) throw new Error(masteryResult.error || 'Error fetching masteries');
-        setMasteries(masteryResult);
-
-        const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
-        const rankResult = await rankRes.json();
-        if (!rankRes.ok) throw new Error(rankResult.error || 'Error fetching rank info');
-        setRankEntries(rankResult);
-
-        const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
-        const winrateResult = await winrateRes.json();
-        if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
-        setWinrateData(winrateResult);
-
-        await fetch("/api/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            account: result,
-            summoner: profileResult,
-            rankedEntries: rankResult,
-            masteries: masteryResult,
-            winrate: winrateResult,
-            gameName: name,
-            tagLine: tag,
-            region: platformRegion,
-          }),
-        });
-
       } catch (err: any) {
         setError(err.message);
       } finally {
