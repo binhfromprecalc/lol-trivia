@@ -92,14 +92,30 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           await Promise.all(
             players.map(async (riotId) => {
               const [gameName, tagLine] = riotId.split("#");
-              await fetch(`/api/sync`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  gameName,
-                  tagLine,
-                }),
-              });
+              const acc = await fetch(`/api/account?gameName=${gameName}&tagLine=${tagLine}`);
+              const account = await acc.json();
+              const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(account.puuid)}`);
+              const profileResult = await profileRes.json();
+              const masteriesRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`);
+              const masteriesResult = await masteriesRes.json();
+              const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`);
+              const rankResult = await rankRes.json();
+              const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`);
+              const winrateResult = await winrateRes.json();
+              await fetch("/api/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                account: account,
+                summoner: profileResult,
+                rankedEntries: rankResult,
+                masteries: masteriesResult,
+                winrate: winrateResult,
+                gameName: gameName,
+                tagLine: tagLine,
+                region: 'na1',
+              }),
+            });
             })
           );
 

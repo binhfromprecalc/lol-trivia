@@ -63,7 +63,6 @@ export default function RiotProfilePage() {
           TR1: 'tr1', LA1: 'la1', LA2: 'la2',
         };
         const platformRegion = regionMap[tag.toUpperCase()] || 'na1';
-        console.log(result.puuid);
         const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`);
         const profileResult = await profileRes.json();
         if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
