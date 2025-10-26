@@ -1,15 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@lib/prisma';
 
-function generateLobbyCode(length = 6) {
-  return Math.random().toString(36).substr(2, length).toUpperCase();
+function generateLobbyCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const {host } = req.body;
-  if (!host?.gameName || !host?.tagLine || !host?.riotId) {
+  const {gameName, tagLine, riotId } = req.body;
+  if (!gameName || !tagLine) {
     return res.status(400).json({ error: 'Missing host player info' });
   }
 
@@ -19,10 +19,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         code: generateLobbyCode(),
         started: false,
         players: {
-          create: {
-            gameName: host.gameName,
-            tagLine: host.tagLine,
-            riotId: host.riotId,
+          connectOrCreate: {
+            where: { riotId }, 
+            create: {
+              gameName,
+              tagLine,
+              riotId,
+            },
           },
         },
       },

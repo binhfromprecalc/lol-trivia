@@ -1,7 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import socket from "@utils/socket";
-import type { Lobby } from "@lib/lobbies";
 import "@styles/lobby.css";
 
 interface ChatMessage {
@@ -10,10 +9,24 @@ interface ChatMessage {
   system?: boolean;
 }
 
+interface Player {
+  gameName: string;
+  tagLine: string;
+  profileIconId: number;
+}
+
+interface Lobby {
+  id: string;
+  code: string;
+  started: boolean;
+  players: Player[];
+  host: string;
+}
+
 export default function LobbyPage() {
   const { lobbyId } = useRouter().query;
   const [lobby, setLobby] = useState<Lobby | null>(null);
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [playerName, setPlayerName] = useState<string>("");
@@ -27,7 +40,7 @@ export default function LobbyPage() {
       .then((res) => res.json())
       .then((data: Lobby) => {
         setLobby(data);
-        setPlayers(data.players);
+        setPlayers(data.players || []);
       })
       .catch(console.error);
 
@@ -38,8 +51,10 @@ export default function LobbyPage() {
     }
 
     // Player joined
-    const handlePlayerJoined = ({ playerName }: { playerName: string }) => {
-      setPlayers((prev) => (prev.includes(playerName) ? prev : [...prev, playerName]));
+    const handlePlayerJoined = ({ player }: { player: Player }) => {
+      setPlayers((prev) =>
+        prev.find((p) => p.gameName === player.gameName) ? prev : [...prev, player]
+      );
     };
     socket.on("player-joined", handlePlayerJoined);
 
@@ -49,7 +64,7 @@ export default function LobbyPage() {
 
     // Player left
     const handlePlayerLeft = ({ playerName }: { playerName: string }) => {
-      setPlayers((prev) => prev.filter((p) => p !== playerName));
+      setPlayers((prev) => prev.filter((p) => p.gameName !== playerName));
     };
     socket.on("player-left", handlePlayerLeft);
     
@@ -107,7 +122,7 @@ export default function LobbyPage() {
         {players.length > 0 ? (
           players.map((p, idx) => (
             <li key={idx} className="player-item">
-              {p}
+              {p.gameName}
             </li>
           ))
         ) : (

@@ -48,7 +48,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          host: { gameName, tagLine, riotId },
+          gameName, tagLine, riotId,
         }),
       });
 

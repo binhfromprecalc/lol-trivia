@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getLobby } from '@lib/lobbies';
+import { prisma } from '@lib/prisma';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
 
   if (req.method !== 'GET') {
@@ -12,7 +12,11 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Invalid lobby ID' });
   }
 
-  const lobby = getLobby(id);
+  const lobby = await prisma.lobby.findUnique({
+      where: { id: String(id) },
+      include: { players: true },
+  });
+
   if (!lobby) {
     return res.status(404).json({ error: 'Lobby not found' });
   }
