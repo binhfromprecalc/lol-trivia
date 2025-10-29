@@ -12,8 +12,11 @@ model Lobby {
   code      String   @unique
   started   Boolean  @default(false)
 
+  hostId    String?  @unique
+  host      Player?  @relation("LobbyHost", fields: [hostId], references: [id])
+
   // One-to-many: A lobby can have many players
-  players   Player[]
+  players   Player[] @relation("LobbyPlayers")
 }
 
 model Player {
@@ -31,7 +34,8 @@ model Player {
   summonerLevel   Int?    
 
   lobbyId         String?
-  lobby           Lobby?        @relation(fields: [lobbyId], references: [id])
+  lobby           Lobby?   @relation("LobbyPlayers", fields: [lobbyId], references: [id])
+  hostedLobby     Lobby?   @relation("LobbyHost")
 
   championMasteries ChampionMastery[]
 
