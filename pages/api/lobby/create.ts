@@ -18,6 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         code: generateLobbyCode(),
         started: false,
+        hostId: riotId,
+        host: gameName,
         players: {
           connectOrCreate: {
             where: { riotId }, 

@@ -20,7 +20,7 @@ interface Lobby {
   code: string;
   started: boolean;
   players: Player[];
-  host: string;
+  host: Player;
 }
 
 export default function LobbyPage() {
@@ -113,7 +113,7 @@ export default function LobbyPage() {
         Lobby ID: <code>{lobby.id}</code>
       </h1>
       <p className="lobby-host">
-        Host: <strong>{lobby.host}</strong>
+        Host: <strong>{lobby.host.gameName}</strong>
       </p>
 
       {/* Players list */}
@@ -130,7 +130,7 @@ export default function LobbyPage() {
         )}
       </ul>
 
-      {playerName === lobby.host && !lobby.started && (
+      {playerName === lobby.host.gameName && !lobby.started && (
         <button
           className="start-button"
           onClick={handleStartGame}
