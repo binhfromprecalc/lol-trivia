@@ -58,8 +58,6 @@
 .list-box {
   list-style: disc inside;
   padding: 12px;
-  max-height: 200px;
-  overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;

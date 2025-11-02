@@ -201,7 +201,7 @@ export default function RiotProfilePage() {
                         className="champion-icon"
                       />
                       <span>
-                        {champName} — Level: {data.championLevel}, Points: {data.championPoints.toLocaleString()}
+                        {champName} - Mastery Points: {data.championPoints.toLocaleString()}
                       </span>
                     </li>
                   );
