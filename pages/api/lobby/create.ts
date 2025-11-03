@@ -13,29 +13,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Missing host player info' });
   }
 
+   const player = await prisma.player.upsert({
+      where: { riotId },
+      update: {},
+      create: {
+        gameName,
+        tagLine,
+        riotId,
+      },
+    });
+
   try {
     const lobby = await prisma.lobby.create({
       data: {
         code: generateLobbyCode(),
         started: false,
-        hostId: riotId,
-        host: gameName,
+        host: { 
+          connect: { id: player.id }, 
+        },
         players: {
-          connectOrCreate: {
-            where: { riotId }, 
-            create: {
-              gameName,
-              tagLine,
-              riotId,
-            },
-          },
+          connect: { id: player.id },
         },
       },
       include: {
-        players: true,
+          host: true,      
+          players: true,    
       },
     });
-
+    console.log('Lobby created:', lobby);
     res.status(200).json(lobby);
   } catch (err) {
     console.error('Error creating lobby:', err);

@@ -10,9 +10,11 @@ interface ChatMessage {
 }
 
 interface Player {
+  id: string;
   gameName: string;
   tagLine: string;
-  profileIconId: number;
+  riotId: string;
+  profileIconId?: number | null;
 }
 
 interface Lobby {
@@ -20,27 +22,25 @@ interface Lobby {
   code: string;
   started: boolean;
   players: Player[];
-  host: Player;
+  host?: Player | null; 
 }
 
 export default function LobbyPage() {
-  const { lobbyId } = useRouter().query;
+  const router = useRouter();
+  const { lobbyId } = router.query;
   const [lobby, setLobby] = useState<Lobby | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [playerName, setPlayerName] = useState<string>("");
-  const router = useRouter();
-
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
-    // Fetch initial lobby data
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
       .then((data: Lobby) => {
         setLobby(data);
-        setPlayers(data.players || []);
+        setPlayers(data.players ?? []);
       })
       .catch(console.error);
 
@@ -50,53 +50,54 @@ export default function LobbyPage() {
       setPlayerName(riotId);
     }
 
-    // Player joined
     const handlePlayerJoined = ({ player }: { player: Player }) => {
       setPlayers((prev) =>
-        prev.find((p) => p.gameName === player.gameName) ? prev : [...prev, player]
+        prev.some((p) => p.riotId === player.riotId) ? prev : [...prev, player]
       );
     };
-    socket.on("player-joined", handlePlayerJoined);
 
-    socket.on('lobby-state', ({ players }) => {
-      setLobby(prev => prev ? { ...prev, players } : prev);
-    });
-
-    // Player left
     const handlePlayerLeft = ({ playerName }: { playerName: string }) => {
       setPlayers((prev) => prev.filter((p) => p.gameName !== playerName));
     };
-    socket.on("player-left", handlePlayerLeft);
-    
-    // Chat messages
+
     const handleChatMessage = (msg: ChatMessage) => {
       setMessages((prev) => [...prev, msg]);
     };
-    socket.on("chat-message", handleChatMessage);
 
-    // Start game
-    socket.on("start-game", ({lobbyId}) => {
-      router.push(`/game/${lobbyId}`);
-    })
-
-    // System messages
     const handleSystemMessage = (msg: { text: string }) => {
-      setMessages((prev) => [...prev, { player: "SYSTEM", text: msg.text, system: true }]);
+      setMessages((prev) => [
+        ...prev,
+        { player: "SYSTEM", text: msg.text, system: true },
+      ]);
     };
+
+    const handleLobbyState = ({ players }: { players: Player[] }) => {
+      setLobby((prev) => (prev ? { ...prev, players } : prev));
+    };
+
+    const handleStartGame = ({ lobbyId }: { lobbyId: string }) => {
+      router.push(`/game/${lobbyId}`);
+    };
+
+    socket.on("player-joined", handlePlayerJoined);
+    socket.on("player-left", handlePlayerLeft);
+    socket.on("chat-message", handleChatMessage);
     socket.on("system-message", handleSystemMessage);
+    socket.on("lobby-state", handleLobbyState);
+    socket.on("start-game", handleStartGame);
 
     return () => {
       socket.off("player-joined", handlePlayerJoined);
       socket.off("player-left", handlePlayerLeft);
       socket.off("chat-message", handleChatMessage);
       socket.off("system-message", handleSystemMessage);
-      socket.off("start-game");
+      socket.off("lobby-state", handleLobbyState);
+      socket.off("start-game", handleStartGame);
     };
   }, [lobbyId]);
 
   const sendMessage = () => {
     if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
-
     socket.emit("chat-message", { lobbyId, text: newMessage });
     setNewMessage("");
   };
@@ -107,22 +108,30 @@ export default function LobbyPage() {
 
   if (!lobby) return <p className="loading">Loading lobby...</p>;
 
+  const isHost =
+    lobby.host &&
+    playerName &&
+    lobby.host.riotId === playerName; 
+
   return (
     <div className="lobby-container">
       <h1 className="lobby-title">
-        Lobby ID: <code>{lobby.id}</code>
+        Lobby Code: <code>{lobby.code}</code>
       </h1>
       <p className="lobby-host">
-        Host: <strong>{lobby.host.gameName}</strong>
+        Host:{" "}
+        <strong>
+          {lobby.host ? lobby.host.gameName : "Unknown host"}
+        </strong>
       </p>
 
       {/* Players list */}
       <h2 className="section-title">Players:</h2>
       <ul className="players-list">
         {players.length > 0 ? (
-          players.map((p, idx) => (
-            <li key={idx} className="player-item">
-              {p.gameName}
+          players.map((p) => (
+            <li key={p.riotId} className="player-item">
+              {p.gameName}#{p.tagLine}
             </li>
           ))
         ) : (
@@ -130,11 +139,8 @@ export default function LobbyPage() {
         )}
       </ul>
 
-      {playerName === lobby.host.gameName && !lobby.started && (
-        <button
-          className="start-button"
-          onClick={handleStartGame}
-        >
+      {isHost && !lobby.started && (
+        <button className="start-button" onClick={handleStartGame}>
           Start Game
         </button>
       )}
