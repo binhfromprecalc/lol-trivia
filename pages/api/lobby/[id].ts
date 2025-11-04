@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const lobby = await prisma.lobby.findUnique({
       where: { id: String(id) },
-      include: { players: true },
+      include: {host: true, players: true },
   });
 
   if (!lobby) {
