@@ -40,7 +40,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           players: true,    
       },
     });
-    console.log('Lobby created:', lobby);
     res.status(200).json(lobby);
   } catch (err) {
     console.error('Error creating lobby:', err);

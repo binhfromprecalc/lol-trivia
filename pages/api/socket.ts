@@ -1,67 +1,80 @@
-import { Server } from 'socket.io';
-import type { NextApiRequest } from 'next';
-
-const lobbies = new Map<string, Map<string, string>>();
+import { Server } from "socket.io";
+import type { NextApiRequest } from "next";
+import { prisma } from "@lib/prisma";
 
 const ioHandler = (_: NextApiRequest, res: any) => {
   if (!res.socket.server.io) {
-    console.log('Initializing WebSocket server...');
+    console.log("Initializing WebSocket server...");
 
     const io = new Server(res.socket.server);
 
-    function leaveLobby(socket: any) {
-      const lobbyId = socket.data.lobbyId;
-      const playerName = socket.data.playerName;
-
+    async function leaveLobby(socket: any) {
+      const { lobbyId, playerName } = socket.data;
       if (!lobbyId || !playerName) return;
 
-      const lobby = lobbies.get(lobbyId);
-      if (!lobby) return;
+      try {
+        const player = await prisma.player.findUnique({
+          where: { riotId: playerName },
+        });
 
-      lobby.delete(socket.id);
-
-      socket.to(lobbyId).emit("player-left", { playerName });
-      io.to(lobbyId).emit("chat-message", {
-        player: "SYSTEM",
-        text: `${playerName} has left the lobby.`,
-        system: true,
-        timestamp: Date.now(),
-      });
-
-      if (lobby.size === 0) {
-        lobbies.delete(lobbyId);
-      }
-
-      delete socket.data.lobbyId;
-      delete socket.data.playerName;
-    }
-
-    io.on('connection', socket => {
-      console.log('Client connected:', socket.id);
-
-      socket.on('join-lobby', ({ lobbyId, playerName }) => {
-        if (socket.data.lobbyId) {
-          leaveLobby(socket);
+        if (player) {
+          await prisma.player.update({
+            where: { id: player.id },
+            data: { lobbyId: null },
+          });
         }
 
-        socket.data.lobbyId = lobbyId;
-        socket.data.playerName = playerName;
+        const lobby = await prisma.lobby.findUnique({
+          where: { id: lobbyId },
+          include: { host: true, players: true },
+        });
 
-        if (!lobbies.has(lobbyId)) {
-          lobbies.set(lobbyId, new Map());
-        }
+        io.to(lobbyId).emit("lobby-state", { lobby });
 
-        lobbies.get(lobbyId)!.set(socket.id, playerName);
-
-        socket.join(lobbyId);
-
-        socket.to(lobbyId).emit('player-joined', { playerName });
-        io.to(lobbyId).emit('chat-message', {
-          player: 'SYSTEM',
-          text: `${playerName} joined the lobby`,
+        io.to(lobbyId).emit("chat-message", {
+          player: "SYSTEM",
+          text: `${playerName} has left the lobby.`,
           system: true,
           timestamp: Date.now(),
         });
+
+        socket.leave(lobbyId);
+        delete socket.data.lobbyId;
+        delete socket.data.playerName;
+      } catch (err) {
+        console.error("Error leaving lobby:", err);
+      }
+    }
+
+    io.on("connection", (socket) => {
+      console.log("Client connected:", socket.id);
+
+      socket.on("join-lobby", async ({ lobbyId, playerName }) => {
+        try {
+          socket.join(lobbyId);
+          socket.data.lobbyId = lobbyId;
+          socket.data.playerName = playerName;
+
+          const player = await prisma.player.findUnique({
+            where: { riotId: playerName },
+          });
+
+          if (player) {
+            await prisma.player.update({
+              where: { id: player.id },
+              data: { lobbyId },
+            });
+          }
+
+          const lobby = await prisma.lobby.findUnique({
+            where: { id: lobbyId },
+            include: { host: true, players: true },
+          });
+
+          io.to(lobbyId).emit("lobby-state", { lobby });
+        } catch (err) {
+          console.error("Error joining lobby:", err);
+        }
       });
 
       socket.on("chat-message", ({ lobbyId, text }) => {
@@ -76,50 +89,66 @@ const ioHandler = (_: NextApiRequest, res: any) => {
       });
 
       socket.on("disconnect", () => {
-        leaveLobby(socket);
         console.log("Client disconnected:", socket.id);
+        leaveLobby(socket);
       });
 
       socket.on("start-game", async ({ lobbyId }) => {
-        const lobby = lobbies.get(lobbyId);
+        const lobby = await prisma.lobby.findUnique({
+          where: { id: lobbyId },
+          include: { players: true },
+        });
+
         if (!lobby) return;
-
         console.log(`Starting game for lobby ${lobbyId}`);
-
-        const players = Array.from(lobby.values());
 
         try {
           await Promise.all(
-            players.map(async (riotId) => {
-              const [gameName, tagLine] = riotId.split("#");
-              const acc = await fetch(`/api/account?gameName=${gameName}&tagLine=${tagLine}`);
+            lobby.players.map(async (player) => {
+              const [gameName, tagLine] = [
+                player.gameName,
+                player.tagLine,
+              ];
+              const acc = await fetch(
+                `/api/account?gameName=${gameName}&tagLine=${tagLine}`
+              );
               const account = await acc.json();
-              const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(account.puuid)}`);
+              const profileRes = await fetch(
+                `/api/summoner?puuid=${encodeURIComponent(account.puuid)}`
+              );
               const profileResult = await profileRes.json();
-              const masteriesRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`);
+              const masteriesRes = await fetch(
+                `/api/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+              );
               const masteriesResult = await masteriesRes.json();
-              const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`);
+              const rankRes = await fetch(
+                `/api/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+              );
               const rankResult = await rankRes.json();
-              const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`);
+              const winrateRes = await fetch(
+                `/api/winrate?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+              );
               const winrateResult = await winrateRes.json();
+
               await fetch("/api/sync", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                account: account,
-                summoner: profileResult,
-                rankedEntries: rankResult,
-                masteries: masteriesResult,
-                winrate: winrateResult,
-                gameName: gameName,
-                tagLine: tagLine,
-                region: 'na1',
-              }),
-            });
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  account,
+                  summoner: profileResult,
+                  rankedEntries: rankResult,
+                  masteries: masteriesResult,
+                  winrate: winrateResult,
+                  gameName,
+                  tagLine,
+                  region: "na1",
+                }),
+              });
             })
           );
 
           console.log("All players synced successfully!");
+          io.to(lobbyId).emit("start-game", { lobbyId });
         } catch (err) {
           console.error("Error syncing players:", err);
           io.to(lobbyId).emit("chat-message", {
@@ -128,14 +157,8 @@ const ioHandler = (_: NextApiRequest, res: any) => {
             system: true,
             timestamp: Date.now(),
           });
-          return;
         }
-
-        io.to(lobbyId).emit("start-game", { lobbyId });
       });
-
-
-      
     });
 
     res.socket.server.io = io;

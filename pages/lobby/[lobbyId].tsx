@@ -71,12 +71,13 @@ export default function LobbyPage() {
       ]);
     };
 
-    const handleLobbyState = ({ players }: { players: Player[] }) => {
-      setLobby((prev) => (prev ? { ...prev, players } : prev));
-    };
-
     const handleStartGame = ({ lobbyId }: { lobbyId: string }) => {
       router.push(`/game/${lobbyId}`);
+    };
+
+    const handleLobbyState = ({ lobby }: { lobby: Lobby }) => {
+      setLobby(lobby);
+      setPlayers(lobby.players ?? []);
     };
 
     socket.on("player-joined", handlePlayerJoined);
