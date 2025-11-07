@@ -1,18 +1,32 @@
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import socket from '@utils/socket';
-import '@styles/game.css';
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import socket from "@utils/socket";
+import "@styles/game.css";
+
+interface Player {
+  id: string;
+  gameName: string;
+  tagLine: string;
+  riotId: string;
+  puuid: string | null;
+  region: string | null;
+  rank: string | null;
+  winrate: number | null;
+  mostKills: number | null;
+  mostDeaths: number | null;
+  profileIconId: number | null;
+  summonerLevel: number | null;
+}
 
 export default function GamePage() {
   const { lobbyId } = useRouter().query;
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [question, setQuestion] = useState<string | null>(null);
-  
 
   useEffect(() => {
-    if (!lobbyId || typeof lobbyId !== 'string') return;
+    if (!lobbyId || typeof lobbyId !== "string") return;
 
-    // Fetch the lobby players (so game knows who's in)
+    // Fetch initial lobby data
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -20,11 +34,28 @@ export default function GamePage() {
       })
       .catch(console.error);
 
-    socket.emit('join-lobby', { lobbyId });
+    // Emit join-lobby event with player info
+    const riotId = localStorage.getItem("riotId");
+    if (riotId) socket.emit("join-lobby", { lobbyId, playerName: riotId });
 
-    // Listen for game start
+    // Listen for lobby updates
+    socket.on("lobby-state", ({ lobby }) => {
+      if (lobby.players) setPlayers(lobby.players);
+    });
+
+    // Listen for game start or question updates
+    socket.on("start-game", () => {
+      console.log("Game started!");
+    });
+
+    socket.on("new-question", (q) => {
+      setQuestion(q);
+    });
+
     return () => {
-      socket.off('start-game');
+      socket.off("lobby-state");
+      socket.off("start-game");
+      socket.off("new-question");
     };
   }, [lobbyId]);
 
@@ -32,27 +63,14 @@ export default function GamePage() {
 
   return (
     <div className="lobby-container">
-      <h1 className="lobby-title">
-        Game Started — Lobby <code>{lobbyId}</code>
-      </h1>
-
-      <h2 className="section-title">Players:</h2>
-      <ul className="players-list">
-        {players.length > 0 ? (
-          players.map((p, idx) => <li key={idx}>{p}</li>)
-        ) : (
-          <p className="italic text-gray-500">Loading players...</p>
-        )}
-      </ul>
-
-      <div className="mt-6">
         <h2 className="section-title">Current Question:</h2>
         {question ? (
-          <p className="text-xl">{question}</p>
+          <p className="question">{question}</p>
         ) : (
-          <p className="italic text-gray-500">Waiting for the first question...</p>
+          <p className="question">
+            Waiting for the first question...
+          </p>
         )}
-      </div>
     </div>
   );
 }

@@ -22,6 +22,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 16px 0 8px 0;
+  text-align: center;
 }
 
 /* Players list */
@@ -83,5 +84,10 @@
   padding: 8px 12px;
   border: 1px solid #ccc;
   border-radius: 6px;
+}
+
+.question {
+  font-weight: bold;
+  text-align: center;
 }
 

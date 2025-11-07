@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import type { NextApiRequest } from "next";
 import { prisma } from "@lib/prisma";
 
+const PLACEHOLDER_URL = "http://localhost:3000";
+
 const ioHandler = (_: NextApiRequest, res: any) => {
   if (!res.socket.server.io) {
     console.log("Initializing WebSocket server...");
@@ -109,28 +111,26 @@ const ioHandler = (_: NextApiRequest, res: any) => {
                 player.gameName,
                 player.tagLine,
               ];
-              const acc = await fetch(
-                `/api/account?gameName=${gameName}&tagLine=${tagLine}`
-              );
+              const acc = await fetch(`${PLACEHOLDER_URL}/api/account?gameName=${gameName}&tagLine=${tagLine}`);
               const account = await acc.json();
               const profileRes = await fetch(
-                `/api/summoner?puuid=${encodeURIComponent(account.puuid)}`
+                `${PLACEHOLDER_URL}/api/summoner?puuid=${encodeURIComponent(account.puuid)}`
               );
               const profileResult = await profileRes.json();
               const masteriesRes = await fetch(
-                `/api/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+                `${PLACEHOLDER_URL}/api/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
               );
               const masteriesResult = await masteriesRes.json();
               const rankRes = await fetch(
-                `/api/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+                `${PLACEHOLDER_URL}/api/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
               );
               const rankResult = await rankRes.json();
               const winrateRes = await fetch(
-                `/api/winrate?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+                `${PLACEHOLDER_URL}/api/winrate?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
               );
               const winrateResult = await winrateRes.json();
 
-              await fetch("/api/sync", {
+              await fetch(`${PLACEHOLDER_URL}/api/sync`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
