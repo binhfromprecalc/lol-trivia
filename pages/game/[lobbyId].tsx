@@ -26,7 +26,6 @@ export default function GamePage() {
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
-    // Fetch initial lobby data
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -34,16 +33,13 @@ export default function GamePage() {
       })
       .catch(console.error);
 
-    // Emit join-lobby event with player info
     const riotId = localStorage.getItem("riotId");
     if (riotId) socket.emit("join-lobby", { lobbyId, playerName: riotId });
 
-    // Listen for lobby updates
     socket.on("lobby-state", ({ lobby }) => {
       if (lobby.players) setPlayers(lobby.players);
     });
 
-    // Listen for game start or question updates
     socket.on("start-game", () => {
       console.log("Game started!");
     });
