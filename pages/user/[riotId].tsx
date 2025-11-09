@@ -164,6 +164,18 @@ export default function RiotProfilePage() {
               );
             })}
           </ul>
+          <ul className="list-box">
+            {Object.entries(winrateData.matchStats).map(([matchId, stats]: any, idx) => {
+              const champName = typedChampionData[stats.champId]?.name || `Unknown (${stats.champId})`;
+              return(
+                <li key = {idx}>
+                  {champName}{stats.win}-{stats.kills}-{stats.deaths}-{stats.assists}
+                </li>
+              );
+
+          })}
+          
+          </ul>
         </div>
       )}
 
@@ -179,9 +191,8 @@ export default function RiotProfilePage() {
           <div className="section">
             <h3 className="section-title">Champion Masteries</h3>
 
-            {/* Lowest mastery callout */}
             <div className="callout">
-              🐢 <strong>Lowest Mastery Champion:</strong>{' '}
+              <strong>Lowest Mastery Champion:</strong>{' '}
               {typedChampionData[lowestChampId]?.name || `Unknown (${lowestChampId})`} —{' '}
               {lowestData.championPoints.toLocaleString()} points
             </div>
