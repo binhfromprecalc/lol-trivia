@@ -15,7 +15,6 @@ export default function RiotProfilePage() {
   const [masteries, setMasteries] = useState<any[]>([]);
   const [rankEntries, setRankEntries] = useState<any[]>([]);
   const [winrateData, setWinrateData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const specialCases: Record<string, string> = {
@@ -42,7 +41,6 @@ export default function RiotProfilePage() {
     }
 
     const fetchData = async () => {
-      setLoading(true);
       setError('');
       setData(null);
       setMasteries([]);
@@ -99,8 +97,6 @@ export default function RiotProfilePage() {
         });
       } catch (err: any) {
         setError(err.message);
-      } finally {
-        setLoading(false);
       }
     };
     fetchData();
@@ -109,8 +105,6 @@ export default function RiotProfilePage() {
   return (
     <div className="profile-container">
       <h1 className="profile-title">Riot Profile for {gameName}#{tagLine}</h1>
-
-      {loading && <p className="loading-text">Loading...</p>}
       {error && <p className="error-text">{error}</p>}
 
       {data && profile && (
@@ -157,8 +151,15 @@ export default function RiotProfilePage() {
               const kda = stats.deaths > 0
                 ? ((stats.kills + stats.assists) / stats.deaths).toFixed(2)
                 : ((stats.kills + stats.assists) / 1).toFixed(2);
+              const sanitizedChampName = specialCases[champName]
+                    || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
               return (
                 <li key={idx}>
+                  <img
+                        src={`/img/champions/${sanitizedChampName}.png`}
+                        alt={champName}
+                        className="champion-icon"
+                  />
                   {champName}: {stats.games} game(s), {winrate.toFixed(0)}% winrate, KDA: {kda}
                 </li>
               );
@@ -167,8 +168,16 @@ export default function RiotProfilePage() {
           <ul className="list-box">
             {Object.entries(winrateData.matchStats).map(([matchId, stats]: any, idx) => {
               const champName = typedChampionData[stats.champId]?.name || `Unknown (${stats.champId})`;
+              const sanitizedChampName = specialCases[champName]
+                    || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
               return(
+                
                 <li key = {idx}>
+                  <img
+                        src={`/img/champions/${sanitizedChampName}.png`}
+                        alt={champName}
+                        className="champion-icon"
+                      />
                   {champName}{stats.win}-{stats.kills}-{stats.deaths}-{stats.assists}
                 </li>
               );
