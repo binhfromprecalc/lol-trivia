@@ -84,11 +84,88 @@
   border-radius: 6px;
 }
 
-/* Callout */
 .callout {
   background: #fff9c4;
   padding: 10px;
   border-radius: 6px;
   font-size: 14px;
   margin-bottom: 12px;
+}
+
+.match-history {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  display: grid;
+  gap: 12px;
+}
+
+.match-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2b2d31;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.match-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.match-card.win {
+  border-left: 5px solid #4caf50;
+}
+
+.match-card.loss {
+  border-left: 5px solid #e53935;
+}
+
+.champion-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.champion-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #3a3a3a;
+}
+
+.champion-name {
+  font-weight: 600;
+  color: #e1e1e1;
+}
+
+.stats-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.kda {
+  font-size: 14px;
+  font-weight: 500;
+  color: #cfcfcf;
+}
+
+.result {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.match-card.win .result {
+  color: #6ad46a;
+}
+
+.match-card.loss .result {
+  color: #f76a6a;
 }

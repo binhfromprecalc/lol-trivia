@@ -15,6 +15,7 @@ export default function RiotProfilePage() {
   const [masteries, setMasteries] = useState<any[]>([]);
   const [rankEntries, setRankEntries] = useState<any[]>([]);
   const [winrateData, setWinrateData] = useState<any>(null);
+
   const [error, setError] = useState('');
 
   const specialCases: Record<string, string> = {
@@ -165,20 +166,29 @@ export default function RiotProfilePage() {
               );
             })}
           </ul>
-          <ul className="list-box">
+          <ul className="match-history">
             {Object.entries(winrateData.matchStats).map(([matchId, stats]: any, idx) => {
               const champName = typedChampionData[stats.champId]?.name || `Unknown (${stats.champId})`;
               const sanitizedChampName = specialCases[champName]
                     || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+              const isWin = stats.win;
               return(
-                
-                <li key = {idx}>
-                  <img
-                        src={`/img/champions/${sanitizedChampName}.png`}
-                        alt={champName}
-                        className="champion-icon"
-                      />
-                  {champName}{stats.win}-{stats.kills}-{stats.deaths}-{stats.assists}
+                <li key={idx} className={`match-card ${isWin ? 'win' : 'loss'}`}>
+                  <div className="champion-section">
+                    <img
+                      src={`/img/champions/${sanitizedChampName}.png`}
+                      alt={champName}
+                      className="champion-icon"
+                    />
+                    <span className="champion-name">{champName}</span>
+                  </div>
+
+                  <div className="stats-section">
+                    <span className="kda">
+                      {stats.kills} / {stats.deaths} / {stats.assists}
+                    </span>
+                    <span className="result">{isWin ? 'Victory' : 'Defeat'}</span>
+                  </div>
                 </li>
               );
 
