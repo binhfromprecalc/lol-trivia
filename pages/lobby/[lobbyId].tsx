@@ -33,6 +33,7 @@ export default function LobbyPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [playerName, setPlayerName] = useState<string>("");
+  const [profile, setProfile] = useState<any>(null);
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
@@ -79,6 +80,18 @@ export default function LobbyPage() {
       setLobby(lobby);
       setPlayers(lobby.players ?? []);
     };
+
+    const fetchProfile = async () => {
+      if (!router.isReady || typeof riotId !== 'string') return;
+      const [name, tag] = riotId.split('#');
+      const res = await fetch(`/api/account?gameName=${name}&tagLine=${tag}`);
+      const result = await res.json();
+      const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`);
+      const profileResult = await profileRes.json();
+      if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
+      setProfile(profileResult);
+    };
+    fetchProfile();
 
     socket.on("player-joined", handlePlayerJoined);
     socket.on("player-left", handlePlayerLeft);
@@ -131,7 +144,12 @@ export default function LobbyPage() {
       <ul className="players-list">
         {players.length > 0 ? (
           players.map((p) => (
-            <li key={p.riotId} className="player-item">
+            <li key={p.riotId} className="profile-name">
+              <img
+                src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${p.profileIconId}.png`}
+                alt={`${p.gameName} Profile Icon`}
+                className="profile-icon"
+              />
               {p.gameName}#{p.tagLine}
             </li>
           ))

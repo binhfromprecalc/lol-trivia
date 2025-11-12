@@ -30,9 +30,8 @@
   margin: 16px 0 8px 0;
 }
 
-/* Players list */
 .players-list {
-  list-style: disc inside;
+  list-style: none;
   padding: 12px;
   max-height: 160px;
   overflow-y: auto;
@@ -120,10 +119,23 @@
   background: #1e4fc7;
 }
 
-/* Loading */
 .loading {
   text-align: center;
   margin-top: 40px;
   font-size: 16px;
   color: #555;
+}
+
+.profile-icon {
+  width: 50px;
+  height: 50px;
+  margin-right: 12px;
+  margin-bottom: 10px;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
 }
