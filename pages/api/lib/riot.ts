@@ -74,7 +74,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
   let mostDeaths = 0;
   const championsPlayed: Record<number, number> = {}; // championId -> count
   const championStats: Record<number, { games: number; wins: number; kills: number; deaths: number; assists: number }> = {};
-  const matchStats: Record<string, {champId: number; kills: number; deaths: number; assists: number; win: boolean}> = {};
+  const matchStats: Record<string, {queueType: string;champId: number; kills: number; deaths: number; assists: number; win: boolean}> = {};
 
 
   for (const matchId of matchIds) {
@@ -111,7 +111,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       championStats[champId].kills += kills;
       championStats[champId].deaths += deaths;
       championStats[champId].assists += participant.assists;
-      matchStats[matchId] = {champId, kills, deaths, assists: participant.assists, win: won };
+      matchStats[matchId] = {queueType: match.info.queueId, champId, kills, deaths, assists: participant.assists, win: won };
     }
   }
 

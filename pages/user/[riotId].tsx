@@ -33,6 +33,16 @@ export default function RiotProfilePage() {
     "LeBlanc": "Leblanc",
   };
 
+  const queueTypeMap: Record<number, string> = {
+    420: 'Ranked Solo/Duo',
+    430: 'Normal Blind Pick',
+    440: 'Ranked Flex',
+    450: 'ARAM',
+    400: 'Normal Draft Pick',
+    490: 'Quickplay',
+    1700: 'Arena',
+  };
+
   useEffect(() => {
     if (!router.isReady || typeof riotId !== 'string') return;
     const [name, tag] = riotId.split('-');
@@ -172,6 +182,7 @@ export default function RiotProfilePage() {
               const sanitizedChampName = specialCases[champName]
                     || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
               const isWin = stats.win;
+              const queueType = queueTypeMap[stats.queueType] || `Unknown Queue, Queue ID: ${stats.queueType}`;
               return(
                 <li key={idx} className={`match-card ${isWin ? 'win' : 'loss'}`}>
                   <div className="champion-section">
@@ -184,6 +195,7 @@ export default function RiotProfilePage() {
                   </div>
 
                   <div className="stats-section">
+                    <span className="queue-type">{queueType}</span>
                     <span className="kda">
                       {stats.kills} / {stats.deaths} / {stats.assists}
                     </span>
