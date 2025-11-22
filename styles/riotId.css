@@ -43,7 +43,6 @@
   font-weight: 600;
 }
 
-/* Sections */
 .section {
   margin-top: 24px;
 }
@@ -58,9 +57,13 @@
 .list-box {
   list-style: none;
   padding: 12px;
-  border: 1px solid #ddd;
   border-radius: 6px;
-  background: #fafafa;
+}
+
+.list-item {
+  margin-bottom: 8px;
+  align-items: center;
+  display: flex;
 }
 
 .mastery-list {

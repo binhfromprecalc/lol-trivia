@@ -165,7 +165,7 @@ export default function RiotProfilePage() {
               const sanitizedChampName = specialCases[champName]
                     || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
               return (
-                <li key={idx}>
+                <li key={idx} className="list-item">
                   <img
                         src={`/img/champions/${sanitizedChampName}.png`}
                         alt={champName}
