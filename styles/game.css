@@ -48,10 +48,13 @@
   padding: 12px;
   height: 200px;
   overflow-y: auto;
-  border: 1px solid #ddd;
+  overflow-x: hidden;
   border-radius: 6px;
-  background: #f9f9f9;
+  color: #e0e0e0;
+  background: #0f0202ff;
   margin-bottom: 10px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .system-message {
@@ -61,6 +64,8 @@
 
 .chat-message {
   margin-bottom: 6px;
+  font-size: 14px;
+  line-height: 1.25;
 }
 
 .chat-player {
@@ -75,11 +80,64 @@
 .chat-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #ffffffff;
   border-radius: 6px;
 }
 
 .question {
   font-weight: bold;
   text-align: center;
+}
+
+.chat-box {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 320px;
+
+  background: rgba(26, 26, 134, 0.92);
+  border: 1px solid rgba(14, 90, 244, 0.15);
+  border-radius: 8px;
+
+  padding: 12px;
+  color: #e0e0e0;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.chat-player {
+  font-weight: 600;
+  color: #7bb0ff;
+}
+
+.chat-input-container {
+  display: flex;
+  gap: 6px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(244, 241, 241, 1);
+  color: white;
+  border-radius: 4px;
+}
+
+.chat-input::placeholder {
+  color: #fafafaff;
+}
+
+.send-button {
+  padding: 6px 10px;
+  font-size: 14px;
+  color: #e0e0e0;
+  background: rgba(50, 120, 255, 0.4);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.send-button:hover {
+  background: rgba(50, 120, 255, 0.6);
 }

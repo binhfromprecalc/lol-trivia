@@ -81,30 +81,37 @@ export default function GamePage() {
 
   return (
     <div className="lobby-container">
-        <h2 className="section-title">Current Question:</h2>
-        {question ? (
-          <p className="question">{question}</p>
-        ) : (
-          <p className="question">
-            Waiting for the first question...
-          </p>
-        )}
-      <div className="chat-section">
-        <h2 className="section-title">Chat:</h2>
+      <h2 className="section-title">Current Question:</h2>
+
+      {question ? (
+        <p className="question">{question}</p>
+      ) : (
+        <p className="question">Waiting for the first question...</p>
+      )}
+      <div className="chat-box">
+
+        <ul className="players-list">
+          {players.map((p) => (
+            <li key={p.riotId} className="profile-name">
+              <img
+                src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${p.profileIconId}.png`}
+                alt={`${p.gameName} Profile Icon`}
+                className="profile-icon"
+              />
+              {p.gameName}#{p.tagLine}
+            </li>
+          ))}
+        </ul>
+
         <div id="chat-messages" className="chat-messages">
           {messages.map((m, idx) => (
             <div key={idx} className="chat-message">
-              {m.system ? (
-                <em className="system-message">{m.text}</em>
-              ) : (
-                <>
-                  <span className="chat-player">{m.player}: </span>
-                  <span>{m.text}</span>
-                </>
-              )}
+              <span className="chat-player">{m.player}: </span>
+              <span>{m.text}</span>
             </div>
           ))}
         </div>
+
         <div className="chat-input-container">
           <input
             type="text"
@@ -114,9 +121,7 @@ export default function GamePage() {
             className="chat-input"
             placeholder="Type a message..."
           />
-          <button className="send-button" onClick={sendMessage}>
-            Send
-          </button>
+          <button className="send-button" onClick={sendMessage}>Send</button>
         </div>
       </div>
     </div>
