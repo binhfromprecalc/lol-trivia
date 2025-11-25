@@ -18,10 +18,18 @@ interface Player {
   summonerLevel: number | null;
 }
 
+interface ChatMessage {
+  player: string;
+  text: string;
+  system?: boolean;
+}
+
 export default function GamePage() {
   const { lobbyId } = useRouter().query;
   const [players, setPlayers] = useState<Player[]>([]);
   const [question, setQuestion] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
@@ -48,12 +56,26 @@ export default function GamePage() {
       setQuestion(q);
     });
 
+
+    const handleChatMessage = (msg: ChatMessage) => {
+      setMessages((prev) => [...prev, msg]);
+    };
+
+    socket.on("chat-message", handleChatMessage);
+
     return () => {
       socket.off("lobby-state");
       socket.off("start-game");
       socket.off("new-question");
+      socket.off("chat-message", handleChatMessage);  
     };
   }, [lobbyId]);
+
+  const sendMessage = () => {
+    if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
+    socket.emit("chat-message", { lobbyId, text: newMessage });
+    setNewMessage("");
+  };
 
   if (!lobbyId) return <p>Loading game...</p>;
 
@@ -67,6 +89,36 @@ export default function GamePage() {
             Waiting for the first question...
           </p>
         )}
+      <div className="chat-section">
+        <h2 className="section-title">Chat:</h2>
+        <div id="chat-messages" className="chat-messages">
+          {messages.map((m, idx) => (
+            <div key={idx} className="chat-message">
+              {m.system ? (
+                <em className="system-message">{m.text}</em>
+              ) : (
+                <>
+                  <span className="chat-player">{m.player}: </span>
+                  <span>{m.text}</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="chat-input-container">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            className="chat-input"
+            placeholder="Type a message..."
+          />
+          <button className="send-button" onClick={sendMessage}>
+            Send
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
