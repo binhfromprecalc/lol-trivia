@@ -31,10 +31,9 @@ export async function getChampionMasteriesByPUUID(puuid: string, platformRegion:
     { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
   );
   const masteries = res.data;
-  const champMasteries: Record<number, {championLevel: number, championPoints: number}> = {};
+  const champMasteries: Record<number, {championPoints: number}> = {};
   for(const champion of masteries) {
     champMasteries[champion.championId] = {
-      championLevel: champion.championLevel,
       championPoints: champion.championPoints
     }
   }
