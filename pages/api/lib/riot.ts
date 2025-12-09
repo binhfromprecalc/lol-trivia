@@ -66,67 +66,95 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
 
   const matchIds: string[] = matchIdsRes.data;
 
+  const matchRequests = matchIds.map(id =>
+    axios.get(
+      `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/${id}`,
+      { headers: { "X-Riot-Token": RIOT_API_KEY! } }
+    ).then(res => res.data)
+     .catch(() => null)
+  );
+
+  const matches = await Promise.all(matchRequests);
+
   let wins = 0;
   let totalDeaths = 0;
   let totalKills = 0;
   let mostKills = 0;
   let mostDeaths = 0;
-  const championsPlayed: Record<number, number> = {}; // championId -> count
-  const championStats: Record<number, { games: number; wins: number; kills: number; deaths: number; assists: number }> = {};
-  const matchStats: Record<string, {queueType: string;champId: number; kills: number; deaths: number; assists: number; win: boolean}> = {};
 
+  const championsPlayed: Record<number, number> = {};
+  const championStats: Record<number, {
+    games: number;
+    wins: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+  }> = {};
 
-  for (const matchId of matchIds) {
-    const matchRes = await axios.get(
-      `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
-      {
-        headers: {
-          'X-Riot-Token': RIOT_API_KEY || '',
-        },
-      }
+  const matchStats: Record<string, {
+    queueType: string;
+    champId: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    win: boolean;
+  }> = {};
+
+  matches.forEach((match, index) => {
+    if (!match) return;
+
+    const participant = match.info.participants.find(
+      (p: any) => p.puuid === puuid
     );
 
-    const match = matchRes.data;
-    const participant = match.info.participants.find((p: any) => p.puuid === puuid);
+    if (!participant) return;
 
-    if (participant) {
-      const champId = participant.championId;
-      const won = participant.win;
-      const kills = participant.kills;
-      if (kills > mostKills) mostKills = kills;
-      if (participant.deaths > mostDeaths) mostDeaths = participant.deaths;
-      const deaths = participant.deaths
-      totalDeaths += deaths;
-      totalKills += kills;
-      if (won) wins++;
+    const champId = participant.championId;
+    const won = participant.win;
+    const kills = participant.kills;
+    const deaths = participant.deaths;
 
-      championsPlayed[champId] = (championsPlayed[champId] || 0) + 1;
+    if (kills > mostKills) mostKills = kills;
+    if (deaths > mostDeaths) mostDeaths = deaths;
 
-      if (!championStats[champId]) {
-        championStats[champId] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
-      }
-      championStats[champId].games++;
-      if (won) championStats[champId].wins++;
-      championStats[champId].kills += kills;
-      championStats[champId].deaths += deaths;
-      championStats[champId].assists += participant.assists;
-      matchStats[matchId] = {queueType: match.info.queueId, champId, kills, deaths, assists: participant.assists, win: won };
+    totalKills += kills;
+    totalDeaths += deaths;
+    if (won) wins++;
+
+    championsPlayed[champId] = (championsPlayed[champId] || 0) + 1;
+
+    if (!championStats[champId]) {
+      championStats[champId] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
     }
-  }
 
-  const winrate = (wins / matchIds.length) * 100;
+    championStats[champId].games++;
+    if (won) championStats[champId].wins++;
+    championStats[champId].kills += kills;
+    championStats[champId].deaths += deaths;
+    championStats[champId].assists += participant.assists;
+
+    matchStats[matchIds[index]] = {
+      queueType: match.info.queueId,
+      champId,
+      kills,
+      deaths,
+      assists: participant.assists,
+      win: won
+    };
+  });
 
   return {
     gamesAnalyzed: matchIds.length,
-    winrate: winrate.toFixed(2),
+    winrate: ((wins / matchIds.length) * 100).toFixed(2),
     wins,
-    totalDeaths,
-    mostDeaths,
-    totalKills,
-    mostKills,
     losses: matchIds.length - wins,
+    totalKills,
+    totalDeaths,
+    mostKills,
+    mostDeaths,
     championsPlayed,
     championStats,
     matchStats,
   };
 }
+
