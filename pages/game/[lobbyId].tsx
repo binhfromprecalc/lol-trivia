@@ -31,6 +31,8 @@ export default function GamePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
+  const riotId = localStorage.getItem("riotId");
+
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
@@ -70,6 +72,14 @@ export default function GamePage() {
       socket.off("chat-message", handleChatMessage);  
     };
   }, [lobbyId]);
+
+  const fetchQuestion = async () => {
+    if (typeof riotId !== 'string') return;
+    const res = await fetch(`/api/game/question?riottId=${riotId}`);
+    const result = await res.json();
+    setQuestion(result.question);
+  }
+  fetchQuestion();
 
   const sendMessage = () => {
     if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
