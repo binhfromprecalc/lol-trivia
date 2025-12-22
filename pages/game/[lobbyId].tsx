@@ -28,6 +28,15 @@ export default function GamePage() {
   const { lobbyId } = useRouter().query;
   const [players, setPlayers] = useState<Player[]>([]);
   const [question, setQuestion] = useState<string | null>(null);
+  const [options, setOptions] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [results, setResults] = useState<{
+    correctIndex: number;
+    counts: number[];
+  } | null>(null);
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
@@ -38,51 +47,60 @@ export default function GamePage() {
 
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
-      .then((data) => {
-        if (data.players) setPlayers(data.players);
-      })
+      .then((data) => data.players && setPlayers(data.players))
       .catch(console.error);
 
-    const riotId = localStorage.getItem("riotId");
     if (riotId) socket.emit("join-lobby", { lobbyId, playerName: riotId });
 
     socket.on("lobby-state", ({ lobby }) => {
       if (lobby.players) setPlayers(lobby.players);
     });
 
-    socket.on("start-game", () => {
-      console.log("Game started!");
+    socket.on("new-question", ({ question, options, duration }) => {
+      setQuestion(question);
+      setOptions(options);
+      setTimeLeft(duration);
+      setSelected(null);
+      setResults(null);
+      setLocked(false);
     });
 
-    socket.on("new-question", (q) => {
-      setQuestion(q);
+    socket.on("timer", ({ timeLeft }) => {
+      setTimeLeft(timeLeft);
     });
 
+    socket.on("answer-results", (data) => {
+      setResults(data);
+      setLocked(true);
+    });
 
-    const handleChatMessage = (msg: ChatMessage) => {
+    socket.on("chat-message", (msg: ChatMessage) => {
       setMessages((prev) => [...prev, msg]);
-    };
-
-    socket.on("chat-message", handleChatMessage);
+    });
 
     return () => {
       socket.off("lobby-state");
-      socket.off("start-game");
       socket.off("new-question");
-      socket.off("chat-message", handleChatMessage);  
+      socket.off("timer");
+      socket.off("answer-results");
+      socket.off("chat-message");
     };
-  }, [lobbyId]);
+  }, [lobbyId, riotId]);
 
-  const fetchQuestion = async () => {
-    if (typeof riotId !== 'string') return;
-    const res = await fetch(`/api/game/question?riottId=${riotId}`);
-    const result = await res.json();
-    setQuestion(result.question);
-  }
-  fetchQuestion();
+  const submitAnswer = (index: number) => {
+    if (locked || selected !== null) return;
+
+    setSelected(index);
+    setLocked(true);
+
+    socket.emit("submit-answer", {
+      lobbyId,
+      answerIndex: index,
+    });
+  };
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
+    if (!newMessage.trim() || !lobbyId) return;
     socket.emit("chat-message", { lobbyId, text: newMessage });
     setNewMessage("");
   };
@@ -90,22 +108,45 @@ export default function GamePage() {
   if (!lobbyId) return <p>Loading game...</p>;
 
   return (
-    <div className="lobby-container">
-      <h2 className="section-title">Current Question:</h2>
+    <div className="game-container">
+      <div className="top-bar">
+        <div className="timer">{timeLeft}s</div>
+      </div>
 
-      {question ? (
-        <p className="question">{question}</p>
-      ) : (
-        <p className="question">Waiting for the first question...</p>
-      )}
+      <h2 className="question-text">
+        {question ?? "Waiting for the first question..."}
+      </h2>
+
+      <div className="answers-grid">
+        {options.map((opt, idx) => {
+          let className = "answer-card";
+
+          if (results) {
+            if (idx === results.correctIndex) className += " correct";
+            else if (idx === selected) className += " wrong";
+          } else if (idx === selected) {
+            className += " selected";
+          }
+
+          return (
+            <button
+              key={idx}
+              className={className}
+              onClick={() => submitAnswer(idx)}
+              disabled={locked}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="chat-box">
-
         <ul className="players-list">
           {players.map((p) => (
             <li key={p.riotId} className="profile-name">
               <img
                 src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${p.profileIconId}.png`}
-                alt={`${p.gameName} Profile Icon`}
                 className="profile-icon"
               />
               {p.gameName}#{p.tagLine}
@@ -113,25 +154,23 @@ export default function GamePage() {
           ))}
         </ul>
 
-        <div id="chat-messages" className="chat-messages">
+        <div className="chat-messages">
           {messages.map((m, idx) => (
             <div key={idx} className="chat-message">
               <span className="chat-player">{m.player}: </span>
-              <span>{m.text}</span>
+              {m.text}
             </div>
           ))}
         </div>
 
         <div className="chat-input-container">
           <input
-            type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             className="chat-input"
-            placeholder="Type a message..."
           />
-          <button className="send-button" onClick={sendMessage}>Send</button>
+          <button onClick={sendMessage} className="send-button">Send</button>
         </div>
       </div>
     </div>

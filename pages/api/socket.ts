@@ -4,6 +4,103 @@ import { prisma } from "@lib/prisma";
 
 const PLACEHOLDER_URL = "http://localhost:3000";
 
+interface ActiveRound {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  answers: Map<string, number>;
+  timeLeft: number;
+  timer?: NodeJS.Timeout;
+}
+
+const activeGames = new Map<string, ActiveRound>();
+
+async function startRound(io: Server, lobbyId: string) {
+  const lobby = await prisma.lobby.findUnique({
+    where: { id: lobbyId },
+    include: { players: true },
+  });
+
+  if (!lobby || lobby.players.length === 0) return;
+
+  const randomPlayer =
+    lobby.players[Math.floor(Math.random() * lobby.players.length)];
+
+  const res = await fetch(
+    `${PLACEHOLDER_URL}/api/game/question?riotId=${encodeURIComponent(
+      randomPlayer.riotId
+    )}`
+  );
+
+  if (!res.ok) {
+    io.to(lobbyId).emit("chat-message", {
+      player: "SYSTEM",
+      text: "Failed to generate question.",
+      system: true,
+    });
+    return;
+  }
+
+  const data = await res.json();
+
+  /**
+   * Expected API response shape:
+   * {
+   *   question: string,
+   *   options: string[],
+   *   correctIndex: number,
+   *   duration?: number
+   * }
+   */
+
+  const round: ActiveRound = {
+    question: data.question,
+    options: data.options,
+    correctIndex: data.correctIndex,
+    answers: new Map(),
+    timeLeft: data.duration ?? 15,
+  };
+
+  activeGames.set(lobbyId, round);
+
+  io.to(lobbyId).emit("new-question", {
+    question: round.question,
+    options: round.options,
+    duration: round.timeLeft,
+  });
+
+  round.timer = setInterval(() => {
+    round.timeLeft--;
+    io.to(lobbyId).emit("timer", { timeLeft: round.timeLeft });
+
+    if (round.timeLeft <= 0) {
+      endRound(io, lobbyId);
+    }
+  }, 1000);
+}
+
+
+function endRound(io: Server, lobbyId: string) {
+  const round = activeGames.get(lobbyId);
+  if (!round) return;
+
+  if (round.timer) clearInterval(round.timer);
+
+  const counts = Array(round.options.length).fill(0);
+  for (const ans of round.answers.values()) {
+    counts[ans]++;
+  }
+
+  io.to(lobbyId).emit("answer-results", {
+    correctIndex: round.correctIndex,
+    counts,
+  });
+  setTimeout(() => startRound(io, lobbyId), 4000);
+}
+
+
+
+
 const ioHandler = (_: NextApiRequest, res: any) => {
   if (!res.socket.server.io) {
     console.log("Initializing WebSocket server...");
@@ -146,7 +243,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
               });
             })
           );
-
           console.log("All players synced successfully!");
           io.to(lobbyId).emit("start-game", { lobbyId });
         } catch (err) {
@@ -159,8 +255,25 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           });
         }
       });
-    });
+        socket.on("submit-answer", ({ lobbyId, answerIndex }) => {
+        const round = activeGames.get(lobbyId);
+        const player = socket.data.playerName;
+        if (!round || !player) return;
 
+        if (round.answers.has(player)) return;
+
+        round.answers.set(player, answerIndex);
+
+        prisma.lobby
+          .findUnique({ where: { id: lobbyId }, include: { players: true } })
+          .then((lobby) => {
+            if (!lobby) return;
+            if (round.answers.size >= lobby.players.length) {
+              endRound(io, lobbyId);
+            }
+          });
+        });
+  });
     res.socket.server.io = io;
   }
 
