@@ -47,9 +47,16 @@ async function mostKills({ riotId, id }: { riotId: string; id: string }) {
     where: { id },
     select: {mostKills: true},
   });
-
+  let options: number[];
+  if (player !== null && player.mostKills !== null) {
+    options = [player.mostKills, player.mostKills + 1, player.mostKills - 1, player.mostKills + 2];
+  }
+  else {
+    options = [0, 0, 0, 0];
+  }
   return {
     question: `How many kills did ${riotId ?? "player"} get in their **highest-kill game** recently?`,
+    options: options,
     answer: `${player?.mostKills ?? "N/A"} kills`,
   };
 }
@@ -59,9 +66,17 @@ async function mostDeaths({ riotId,id }: {riotId: string; id: string }) {
     where: { id },
     select: { mostDeaths: true },
   });
+  let options: number[];
+  if (player !== null && player.mostDeaths !== null) {
+    options = [player.mostDeaths, player.mostDeaths + 1, player.mostDeaths - 1, player.mostDeaths + 2];
+  }
+  else {
+    options = [0, 0, 0, 0];
+  }
 
   return {
     question: `How many deaths did ${riotId ?? "player"} have in their **highest-death game** recently?`,
+    options: options,
     answer: `${player?.mostDeaths ?? "N/A"} deaths`,
   };
 }
