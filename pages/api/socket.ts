@@ -7,7 +7,6 @@ const PLACEHOLDER_URL = "http://localhost:3000";
 interface ActiveRound {
   question: string;
   options: string[];
-  correctIndex: number;
   answers: Map<string, number>;
   timeLeft: number;
   timer?: NodeJS.Timeout;
@@ -56,9 +55,8 @@ async function startRound(io: Server, lobbyId: string) {
   const round: ActiveRound = {
     question: data.question,
     options: data.options,
-    correctIndex: data.correctIndex,
     answers: new Map(),
-    timeLeft: data.duration ?? 15,
+    timeLeft: 15,
   };
 
   activeGames.set(lobbyId, round);
@@ -92,7 +90,6 @@ function endRound(io: Server, lobbyId: string) {
   }
 
   io.to(lobbyId).emit("answer-results", {
-    correctIndex: round.correctIndex,
     counts,
   });
   setTimeout(() => startRound(io, lobbyId), 4000);

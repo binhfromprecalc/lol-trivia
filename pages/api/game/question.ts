@@ -12,14 +12,16 @@ async function leastPlayedChampion({ riotId, id }: { riotId: string; id: string 
   const mastery = await prisma.championMastery.findMany({
     where: { id },
     orderBy: { championPoints: "asc" },
-    take: 1,
+    take: 4,
   });
 
-  const champ = mastery[0];
+  const correctAnswer = mastery[0];
+  const options = mastery.map((m) => m.championId);
 
   return {
     question: `Who is ${riotId ?? "this player"}'s **least played champion**?`,
-    answer: champ?.championId ?? "Unknown",
+    options: options,
+    answer: correctAnswer?.championId ?? "Unknown",
   };
 }
 
@@ -27,14 +29,16 @@ async function mostPlayedChampion({ riotId, id }: { riotId: string; id: string }
   const mastery = await prisma.championMastery.findMany({
     where: { id },
     orderBy: { championPoints: "desc" },
-    take: 1,
+    take: 4,
   });
 
-  const champ = mastery[0];
+  const correctAnswer = mastery[0];
+  const options = mastery.map((m) => m.championId);
 
   return {
     question: `Who is ${riotId ?? "this player"}'s **most played champion**?`,
-    answer: champ?.championId ?? "Unknown",
+    options: options,
+    answer: correctAnswer?.championId ?? "Unknown",
   };
 }
 
