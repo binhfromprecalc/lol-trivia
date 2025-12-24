@@ -87,6 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { riotId } = req.body;
+    console.log(riotId);
 
     if (!riotId)
       return res.status(400).json({ error: "Missing riotId" });
@@ -95,6 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { riotId },
       select: { id: true },
     });
+    console.log(player);
 
     if (!player)
       return res.status(404).json({ error: "Player not found in DB" });
@@ -108,6 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       question: result.question,
+      options: result.options,
       answer: result.answer,
       type: randomGen.name,
     });

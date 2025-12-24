@@ -15,21 +15,26 @@ interface ActiveRound {
 const activeGames = new Map<string, ActiveRound>();
 
 async function startRound(io: Server, lobbyId: string) {
+  console.log("startRound called for lobby", lobbyId);
   const lobby = await prisma.lobby.findUnique({
     where: { id: lobbyId },
     include: { players: true },
   });
 
+  console.log("Lobby:", lobby);
+
   if (!lobby || lobby.players.length === 0) return;
 
   const randomPlayer =
     lobby.players[Math.floor(Math.random() * lobby.players.length)];
-
-  const res = await fetch(
-    `${PLACEHOLDER_URL}/api/game/question?riotId=${encodeURIComponent(
-      randomPlayer.riotId
-    )}`
-  );
+  console.log("Random Player:", randomPlayer);
+  const res = await fetch(`${PLACEHOLDER_URL}/api/game/question`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    riotId: randomPlayer.riotId,
+  }),
+});
 
   if (!res.ok) {
     io.to(lobbyId).emit("chat-message", {
@@ -242,6 +247,7 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           );
           console.log("All players synced successfully!");
           io.to(lobbyId).emit("start-game", { lobbyId });
+          startRound(io, lobbyId);
         } catch (err) {
           console.error("Error syncing players:", err);
           io.to(lobbyId).emit("chat-message", {

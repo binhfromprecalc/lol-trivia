@@ -86,6 +86,7 @@ export default function GamePage() {
       socket.off("chat-message");
     };
   }, [lobbyId, riotId]);
+  
 
   const submitAnswer = (index: number) => {
     if (locked || selected !== null) return;
