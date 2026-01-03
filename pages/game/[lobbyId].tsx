@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import socket from "@utils/socket";
 import "@styles/game.css";
+import championData from '@data/champions.json';
 
 interface Player {
   id: string;
@@ -28,12 +29,12 @@ export default function GamePage() {
   const { lobbyId } = useRouter().query;
   const [players, setPlayers] = useState<Player[]>([]);
   const [question, setQuestion] = useState<string | null>(null);
-  const [options, setOptions] = useState<string[]>([]);
+  const [options, setOptions] = useState<(string | number)[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [locked, setLocked] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [results, setResults] = useState<{
-    correctIndex: number;
+    answer: string | number;
     counts: number[];
   } | null>(null);
 
@@ -41,6 +42,14 @@ export default function GamePage() {
   const [newMessage, setNewMessage] = useState("");
 
   const riotId = localStorage.getItem("riotId");
+
+  const getDisplayText = (text: string | number) => {
+    const key = String(text);
+    if (question?.toLowerCase().includes("champion") && (championData as Record<string, {name: string}>)[key]) {
+      return (championData as Record<string, {name: string}>)[key].name;
+    }
+    return String(text);
+  };
 
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
@@ -123,8 +132,10 @@ export default function GamePage() {
           let className = "answer-card";
 
           if (results) {
-            if (idx === results.correctIndex) className += " correct";
-            else if (idx === selected) className += " wrong";
+            if (idx === selected) {
+              if (options[idx] === results.answer) className += " correct";
+              else className += " wrong";
+            }
           } else if (idx === selected) {
             className += " selected";
           }
@@ -136,7 +147,7 @@ export default function GamePage() {
               onClick={() => submitAnswer(idx)}
               disabled={locked}
             >
-              {opt}
+              {getDisplayText(opt)}
             </button>
           );
         })}

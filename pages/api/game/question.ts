@@ -10,12 +10,13 @@ const questionGenerators = [
 
 async function leastPlayedChampion({ riotId, id }: { riotId: string; id: string }) {
   const mastery = await prisma.championMastery.findMany({
-    where: { id },
+    where: { player: { riotId } },
     orderBy: { championPoints: "asc" },
     take: 4,
   });
 
   const correctAnswer = mastery[0];
+  console.log(mastery);
   const options = mastery.map((m) => m.championId);
 
   return {
@@ -25,14 +26,15 @@ async function leastPlayedChampion({ riotId, id }: { riotId: string; id: string 
   };
 }
 
-async function mostPlayedChampion({ riotId, id }: { riotId: string; id: string }) {
+async function mostPlayedChampion({ riotId}: { riotId: string}) {
   const mastery = await prisma.championMastery.findMany({
-    where: { id },
+    where: { player: { riotId } },
     orderBy: { championPoints: "desc" },
     take: 4,
   });
 
   const correctAnswer = mastery[0];
+  console.log(mastery);
   const options = mastery.map((m) => m.championId);
 
   return {
@@ -42,9 +44,9 @@ async function mostPlayedChampion({ riotId, id }: { riotId: string; id: string }
   };
 }
 
-async function mostKills({ riotId, id }: { riotId: string; id: string }) {
+async function mostKills({ riotId}: { riotId: string; id: string }) {
   const player = await prisma.player.findUnique({
-    where: { id },
+    where: { riotId },
     select: {mostKills: true},
   });
   let options: number[];
@@ -57,13 +59,13 @@ async function mostKills({ riotId, id }: { riotId: string; id: string }) {
   return {
     question: `How many kills did ${riotId ?? "player"} get in their **highest-kill game** recently?`,
     options: options,
-    answer: `${player?.mostKills ?? "N/A"} kills`,
+    answer: player?.mostKills ?? 0,
   };
 }
 
-async function mostDeaths({ riotId,id }: {riotId: string; id: string }) {
+async function mostDeaths({ riotId}: {riotId: string; id: string }) {
   const player = await prisma.player.findUnique({
-    where: { id },
+    where: { riotId },
     select: { mostDeaths: true },
   });
   let options: number[];
@@ -77,7 +79,7 @@ async function mostDeaths({ riotId,id }: {riotId: string; id: string }) {
   return {
     question: `How many deaths did ${riotId ?? "player"} have in their **highest-death game** recently?`,
     options: options,
-    answer: `${player?.mostDeaths ?? "N/A"} deaths`,
+    answer: player?.mostDeaths ?? 0,
   };
 }
 
@@ -87,16 +89,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { riotId } = req.body;
-    console.log(riotId);
 
     if (!riotId)
       return res.status(400).json({ error: "Missing riotId" });
 
     const player = await prisma.player.findUnique({
       where: { riotId },
-      select: { id: true },
     });
-    console.log(player);
 
     if (!player)
       return res.status(404).json({ error: "Player not found in DB" });
