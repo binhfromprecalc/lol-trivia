@@ -8,7 +8,9 @@ const questionGenerators = [
   mostDeaths,
 ];
 
-async function leastPlayedChampion({ riotId, id }: { riotId: string; id: string }) {
+let lastQuestion: number | null = null;
+
+async function leastPlayedChampion({ riotId}: { riotId: string}) {
   const mastery = await prisma.championMastery.findMany({
     where: { player: { riotId } },
     orderBy: { championPoints: "asc" },
@@ -44,7 +46,7 @@ async function mostPlayedChampion({ riotId}: { riotId: string}) {
   };
 }
 
-async function mostKills({ riotId}: { riotId: string; id: string }) {
+async function mostKills({ riotId}: { riotId: string}) {
   const player = await prisma.player.findUnique({
     where: { riotId },
     select: {mostKills: true},
@@ -63,7 +65,7 @@ async function mostKills({ riotId}: { riotId: string; id: string }) {
   };
 }
 
-async function mostDeaths({ riotId}: {riotId: string; id: string }) {
+async function mostDeaths({ riotId}: { riotId: string }) {
   const player = await prisma.player.findUnique({
     where: { riotId },
     select: { mostDeaths: true },
@@ -101,11 +103,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Player not found in DB" });
 
     const { id } = player;
+    
+    let randomGen = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
+    
+    while(lastQuestion !== null && lastQuestion === questionGenerators.indexOf(randomGen)) {
+      randomGen = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
+    }
 
-    const randomGen =
-      questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
-
-    const result = await randomGen({ riotId, id });
+    const result = await randomGen({ riotId });
+    lastQuestion = questionGenerators.indexOf(randomGen);
+    
 
     return res.status(200).json({
       question: result.question,
