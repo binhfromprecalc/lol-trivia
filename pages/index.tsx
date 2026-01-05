@@ -112,28 +112,6 @@ export default function Home() {
           >
             {loading ? 'Loading...' : 'Search'}
           </button>
-          <button
-            className="button green"
-            onClick={handleCreateLobby}
-          >
-            Create Lobby
-          </button>
-        </div>
-
-        {/* Join Lobby */}
-        <div className="input-group">
-          <input
-            className="input-field"
-            placeholder="Enter Lobby ID"
-            value={joinLobbyId}
-            onChange={(e) => setJoinLobbyId(e.target.value)}
-          />
-          <button
-            className="button blue"
-            onClick={handleJoinLobby}
-          >
-            Join Lobby
-          </button>
         </div>
 
         {error && <p className="error-text">{error}</p>}

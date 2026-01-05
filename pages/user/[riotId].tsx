@@ -15,7 +15,8 @@ export default function RiotProfilePage() {
   const [masteries, setMasteries] = useState<any[]>([]);
   const [rankEntries, setRankEntries] = useState<any[]>([]);
   const [winrateData, setWinrateData] = useState<any>(null);
-
+  const [lobby, setLobby] = useState<{ id: string; players: any[] } | null>(null);
+  const [joinLobbyId, setJoinLobbyId] = useState('');
   const [error, setError] = useState('');
 
   const specialCases: Record<string, string> = {
@@ -113,6 +114,52 @@ export default function RiotProfilePage() {
     fetchData();
   }, [router.isReady, riotId]);
 
+  const handleCreateLobby = async () => {
+    try {
+      
+
+      const res = await fetch('/api/lobby/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameName, tagLine, riotId,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create lobby');
+      const newLobby = await res.json();
+      setLobby(newLobby);
+      router.push(`/lobby/${newLobby.id}`);
+    } catch (err: any) {
+      setError(err.message || 'Error creating lobby');
+    }
+  };
+
+  const handleJoinLobby = async () => {
+    try {
+      if (typeof riotId !== 'string') throw new Error('Invalid Riot ID');
+
+      const res = await fetch('/api/lobby/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lobbyCode: joinLobbyId,
+          gameName,
+          tagLine,
+          riotId,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to join lobby');
+      localStorage.setItem('riotId', riotId);
+      const joinedLobby = await res.json();
+      setLobby(joinedLobby);
+      router.push(`/lobby/${joinedLobby.id}`);
+    } catch (err: any) {
+      setError(err.message || 'Error joining lobby');
+    }
+  };
+
   return (
     <div className="profile-container">
       <h1 className="profile-title">Riot Profile for {gameName}#{tagLine}</h1>
@@ -128,6 +175,28 @@ export default function RiotProfilePage() {
           <h2 className="profile-name">{data.gameName} — level {profile.summonerLevel}</h2>
         </div>
       )}
+
+      <button
+            className="button green"
+            onClick={handleCreateLobby}
+          >
+            Create Lobby
+      </button>
+
+      <div className="input-group">
+        <input
+          className="input-field"
+          placeholder="Enter Lobby ID"
+          value={joinLobbyId}
+          onChange={(e) => setJoinLobbyId(e.target.value)}
+        />
+        <button
+          className="button blue"
+          onClick={handleJoinLobby}
+        >
+          Join Lobby
+        </button>
+      </div>
 
       {/* Ranked Info */}
       {rankEntries.length > 0 && (

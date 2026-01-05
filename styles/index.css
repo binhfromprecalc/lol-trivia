@@ -1,11 +1,9 @@
-/* Center container */
 .home-container {
   display: flex;
   justify-content: center;
   margin-top: 60px;
 }
 
-/* Card */
 .home-card {
   width: 100%;
   max-width: 400px;
@@ -16,7 +14,6 @@
   font-family: Arial, sans-serif;
 }
 
-/* Title */
 .home-title {
   font-size: 22px;
   font-weight: bold;
@@ -24,7 +21,6 @@
   margin-bottom: 24px;
 }
 
-/* Input group */
 .input-group {
   display: flex;
   align-items: center;
@@ -33,7 +29,6 @@
   margin-bottom: 20px;
 }
 
-/* Input field */
 .input-field {
   flex: 1;
   padding: 10px 14px;
@@ -47,7 +42,12 @@
   border: 1px solid #000;
 }
 
-/* Buttons */
+.button.blue {
+  background: #2563eb;
+}
+.button.blue:hover {
+  background: #1e4fc7;
+}
 .button {
   padding: 10px 16px;
   border: none;
@@ -57,22 +57,7 @@
   transition: background 0.2s ease;
   color: white;
 }
-.button.blue {
-  background: #2563eb;
-}
-.button.blue:hover {
-  background: #1e4fc7;
-}
-.button.green {
-  background: #2d9d4d;
-}
-.button.green:hover {
-  background: #22803c;
-}
-.button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+
 
 /* Error text */
 .error-text {
