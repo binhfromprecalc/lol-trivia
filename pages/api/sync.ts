@@ -17,12 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       platformRegion,
     } = req.body;
 
-    // Basic validation
     if (!account || !summoner || !gameName || !tagLine) {
       return res.status(400).json({ error: "Missing required player data" });
     }
 
-    // Step 1: Upsert player info
     const player = await prisma.player.upsert({
       where: { riotId: `${gameName}#${tagLine}` },
       update: {
@@ -50,7 +48,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // Step 2: Upsert champion masteries
     const masteryEntries = Object.entries(masteries || {});
     await Promise.all(
       masteryEntries.map(async ([championId, data]) => {

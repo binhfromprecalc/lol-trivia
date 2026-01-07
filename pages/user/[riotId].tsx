@@ -166,38 +166,41 @@ export default function RiotProfilePage() {
       {error && <p className="error-text">{error}</p>}
 
       {data && profile && (
-        <div className="profile-header">
-          <img
-            src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${profile.profileIconId}.png`}
-            alt={`${gameName} Profile Icon`}
-            className="profile-icon"
-          />
-          <h2 className="profile-name">{data.gameName} — level {profile.summonerLevel}</h2>
+        <div className="profile-section">
+          <div className="profile-info">
+            <img
+              src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${profile.profileIconId}.png`}
+              alt={`${gameName} Profile Icon`}
+              className="profile-icon"
+            />
+            <h2 className="profile-name">{data.gameName} — level {profile.summonerLevel}</h2>
+          </div>
+          <div className="lobby-actions">
+            <button
+              className="button green"
+              onClick={handleCreateLobby}
+            >
+              Create Lobby
+            </button>
+
+            <div className="input-group">
+              <input
+                className="input-field"
+                placeholder="Enter Lobby ID"
+                value={joinLobbyId}
+                onChange={(e) => setJoinLobbyId(e.target.value)}
+              />
+              <button
+                className="button blue"
+                onClick={handleJoinLobby}
+              >
+                Join Lobby
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      <button
-            className="button green"
-            onClick={handleCreateLobby}
-          >
-            Create Lobby
-      </button>
-
-      <div className="input-group">
-        <input
-          className="input-field"
-          placeholder="Enter Lobby ID"
-          value={joinLobbyId}
-          onChange={(e) => setJoinLobbyId(e.target.value)}
-        />
-        <button
-          className="button blue"
-          onClick={handleJoinLobby}
-        >
-          Join Lobby
-        </button>
-      </div>
-
+      
       {/* Ranked Info */}
       {rankEntries.length > 0 && (
         <div className="section">
