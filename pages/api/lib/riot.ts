@@ -93,7 +93,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
 
   const matchStats: Record<string, {
     queueType: string;
-    champId: number;
+    champName: string;
     kills: number;
     deaths: number;
     assists: number;
@@ -109,10 +109,11 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
 
     if (!participant) return;
 
-    const champId = participant.championId;
+    const champName = participant.championName;
     const won = participant.win;
     const kills = participant.kills;
     const deaths = participant.deaths;
+    const creepScore = participant.totalMinionsKilled + participant.neutralMinionsKilled;
 
     if (kills > mostKills) mostKills = kills;
     if (deaths > mostDeaths) mostDeaths = deaths;
@@ -121,21 +122,21 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     totalDeaths += deaths;
     if (won) wins++;
 
-    championsPlayed[champId] = (championsPlayed[champId] || 0) + 1;
+    championsPlayed[champName] = (championsPlayed[champName] || 0) + 1;
 
-    if (!championStats[champId]) {
-      championStats[champId] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
+    if (!championStats[champName]) {
+      championStats[champName] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
     }
 
-    championStats[champId].games++;
-    if (won) championStats[champId].wins++;
-    championStats[champId].kills += kills;
-    championStats[champId].deaths += deaths;
-    championStats[champId].assists += participant.assists;
+    championStats[champName].games++;
+    if (won) championStats[champName].wins++;
+    championStats[champName].kills += kills;
+    championStats[champName].deaths += deaths;
+    championStats[champName].assists += participant.assists;
 
     matchStats[matchIds[index]] = {
       queueType: match.info.queueId,
-      champId,
+      champName,
       kills,
       deaths,
       assists: participant.assists,

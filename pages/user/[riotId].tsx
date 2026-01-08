@@ -228,8 +228,7 @@ export default function RiotProfilePage() {
           <p>Most Kills in a Game: {winrateData.mostKills}</p>
           <p>Most Deaths in a Game: {winrateData.mostDeaths}</p>
           <ul className="list-box">
-            {Object.entries(winrateData.championStats).map(([champId, stats]: any, idx) => {
-              const champName = typedChampionData[champId]?.name || `Unknown (${champId})`;
+            {Object.entries(winrateData.championStats).map(([champName, stats]: any, idx) => {
               const winrate = (stats.wins / stats.games) * 100;
               const kda = stats.deaths > 0
                 ? ((stats.kills + stats.assists) / stats.deaths).toFixed(2)
@@ -250,7 +249,7 @@ export default function RiotProfilePage() {
           </ul>
           <ul className="match-history">
             {Object.entries(winrateData.matchStats).map(([matchId, stats]: any, idx) => {
-              const champName = typedChampionData[stats.champId]?.name || `Unknown (${stats.champId})`;
+              const champName = stats.champName;
               const sanitizedChampName = specialCases[champName]
                     || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
               const isWin = stats.win;
