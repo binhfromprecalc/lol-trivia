@@ -97,6 +97,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     kills: number;
     deaths: number;
     assists: number;
+    creepScore: number;
     win: boolean;
   }> = {};
 
@@ -140,6 +141,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       kills,
       deaths,
       assists: participant.assists,
+      creepScore,
       win: won
     };
   });
