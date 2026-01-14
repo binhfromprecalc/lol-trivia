@@ -18,6 +18,8 @@ export default function RiotProfilePage() {
   const [lobby, setLobby] = useState<{ id: string; players: any[] } | null>(null);
   const [joinLobbyId, setJoinLobbyId] = useState('');
   const [error, setError] = useState('');
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   const specialCases: Record<string, string> = {
     "Wukong": "MonkeyKing",
@@ -161,7 +163,8 @@ export default function RiotProfilePage() {
   };
 
   return (
-    <div className="profile-container">
+    <>
+      <div className="profile-container">
       <h1 className="profile-title">Riot Profile for {gameName}#{tagLine}</h1>
       {error && <p className="error-text">{error}</p>}
 
@@ -255,7 +258,7 @@ export default function RiotProfilePage() {
               const isWin = stats.win;
               const queueType = queueTypeMap[stats.queueType] || `Unknown Queue, Queue ID: ${stats.queueType}`;
               return(
-                <li key={idx} className={`match-card ${isWin ? 'win' : 'loss'}`}>
+                <li key={idx} className={`match-card ${isWin ? 'win' : 'loss'}`} onClick={() => { setSelectedMatch(stats); setShowPopup(true); }}>
                   <div className="champion-section">
                     <img
                       src={`/img/champions/${sanitizedChampName}.png`}
@@ -324,5 +327,14 @@ export default function RiotProfilePage() {
         );
       })()}
     </div>
+
+    {showPopup && (
+      <div className="popup-overlay" onClick={() => setShowPopup(false)}>
+        <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+          {/* Blank popup for now */}
+        </div>
+      </div>
+    )}
+    </>
   );
 }
