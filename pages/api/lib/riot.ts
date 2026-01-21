@@ -99,9 +99,10 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     assists: number;
     creepScore: number;
     win: boolean;
+    participantRiotIds: string[];
   }> = {};
 
-  matches.forEach((match, index) => {
+  matches.forEach(async (match, index) => {
     if (!match) return;
 
     const participant = match.info.participants.find(
@@ -135,6 +136,19 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     championStats[champName].deaths += deaths;
     championStats[champName].assists += participant.assists;
 
+    const participantRiotIds: string[] = [];
+    for (const p of match.info.participants) {
+      try {
+        const accountRes = await axios.get(
+          `https://${ACCOUNT_REGION}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(p.puuid)}`,
+          { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
+        );
+        participantRiotIds.push(`${accountRes.data.gameName}#${accountRes.data.tagLine}`);
+      } catch {
+        participantRiotIds.push('Unknown');
+      }
+    }
+
     matchStats[matchIds[index]] = {
       queueType: match.info.queueId,
       champName,
@@ -142,7 +156,8 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       deaths,
       assists: participant.assists,
       creepScore,
-      win: won
+      win: won,
+      participantRiotIds
     };
   });
 
