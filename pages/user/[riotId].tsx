@@ -250,6 +250,7 @@ export default function RiotProfilePage() {
               );
             })}
           </ul>
+
           <ul className="match-history">
             {Object.entries(winrateData.matchStats).map(([matchId, stats]: any, idx) => {
               const champName = stats.champName;
@@ -271,7 +272,7 @@ export default function RiotProfilePage() {
                   <div className="stats-section">
                     <span className="queue-type">{queueType}</span>
                     <span className="kda">
-                      {stats.kills} / {stats.deaths} / {stats.assists}
+                      {stats.kills} / {stats.deaths} / {stats.assists} / CS: {stats.creepScore}
                     </span>
                     <span className="result">{isWin ? 'Victory' : 'Defeat'}</span>
                   </div>
@@ -328,10 +329,15 @@ export default function RiotProfilePage() {
       })()}
     </div>
 
-    {showPopup && (
+    {showPopup && selectedMatch && (
       <div className="popup-overlay" onClick={() => setShowPopup(false)}>
         <div className="popup-content" onClick={(e) => e.stopPropagation()}>
-          {/* Blank popup for now */}
+          <h3>Match Participants</h3>
+          <ul>
+            {selectedMatch.participantRiotIds && selectedMatch.participantRiotIds.map((riotId: string, idx: number) => (
+              <li key={idx}>{riotId}</li>
+            ))}
+          </ul>
         </div>
       </div>
     )}

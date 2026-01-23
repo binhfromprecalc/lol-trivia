@@ -89,23 +89,20 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     kills: number;
     deaths: number;
     assists: number;
-    creepScore: number;
   }> = {};
 
   const matchStats: Record<string, {
     queueType: string;
-    participants: {
-      riotId: string;
-      champName: string;
-      kills: number;
-      deaths: number;
-      assists: number;
-      creepScore: number;
-      win: boolean;
-    }[];
+    champName: string;
+    kills: number;
+    deaths: number;
+    assists: number;
+    creepScore: number;
+    win: boolean;
+    participantRiotIds: string[];
   }> = {};
 
-  matches.forEach(async (match, index) => {
+  matches.forEach((match, index) => {
     if (!match) return;
 
     const participant = match.info.participants.find(
@@ -118,7 +115,6 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     const won = participant.win;
     const kills = participant.kills;
     const deaths = participant.deaths;
-    const assists = participant.assists;
     const creepScore = participant.totalMinionsKilled + participant.neutralMinionsKilled;
 
     if (kills > mostKills) mostKills = kills;
@@ -131,57 +127,29 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     championsPlayed[champName] = (championsPlayed[champName] || 0) + 1;
 
     if (!championStats[champName]) {
-      championStats[champName] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, creepScore: 0 };
+      championStats[champName] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
     }
 
     championStats[champName].games++;
     if (won) championStats[champName].wins++;
     championStats[champName].kills += kills;
     championStats[champName].deaths += deaths;
-    championStats[champName].assists += assists;
-    championStats[champName].creepScore += creepScore;
+    championStats[champName].assists += participant.assists;
 
-    const participants: {
-      riotId: string;
-      champName: string;
-      kills: number;
-      deaths: number;
-      assists: number;
-      creepScore: number;
-      win: boolean;
-    }[] = [];
-
+    const participantRiotIds: string[] = [];
     for (const p of match.info.participants) {
-      try {
-        const accountRes = await axios.get(
-          `https://${ACCOUNT_REGION}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(p.puuid)}`,
-          { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
-        );
-        participants.push({
-          riotId: `${accountRes.data.gameName}#${accountRes.data.tagLine}`,
-          champName: p.championName,
-          kills: p.kills,
-          deaths: p.deaths,
-          assists: p.assists,
-          creepScore: p.totalMinionsKilled + p.neutralMinionsKilled,
-          win: p.win
-        });
-      } catch {
-        participants.push({
-          riotId: 'Unknown',
-          champName: p.championName,
-          kills: p.kills,
-          deaths: p.deaths,
-          assists: p.assists,
-          creepScore: p.totalMinionsKilled + p.neutralMinionsKilled,
-          win: p.win
-        });
-      }
+      participantRiotIds.push(`${p.riotIdGameName}#${p.riotIdTagline}`);
     }
 
     matchStats[matchIds[index]] = {
       queueType: match.info.queueId,
-      participants
+      champName,
+      kills,
+      deaths,
+      assists: participant.assists,
+      creepScore,
+      win: won,
+      participantRiotIds
     };
   });
 
