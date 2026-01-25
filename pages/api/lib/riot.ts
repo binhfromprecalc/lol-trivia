@@ -99,7 +99,14 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     assists: number;
     creepScore: number;
     win: boolean;
-    participantRiotIds: string[];
+    participantStats: Record<string, {
+      riotId: string;
+      champName: string;
+      kills: number;
+      deaths: number;
+      assists: number;
+      creepScore: number;
+    }>;
   }> = {};
 
   matches.forEach((match, index) => {
@@ -136,9 +143,31 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
     championStats[champName].deaths += deaths;
     championStats[champName].assists += participant.assists;
 
-    const participantRiotIds: string[] = [];
+    const participantStats: Record<string, {
+      riotId: string;
+      champName: string;
+      kills: number;
+      deaths: number;
+      assists: number;
+      creepScore: number;
+    }> = {};
     for (const p of match.info.participants) {
-      participantRiotIds.push(`${p.riotIdGameName}#${p.riotIdTagline}`);
+      if(participantStats[p.puuid] === undefined) {
+        participantStats[p.puuid] = {
+          riotId: '',
+          champName: '',
+          kills: 0,
+          deaths: 0,
+          assists: 0,
+          creepScore: 0
+        };
+      }
+      participantStats[p.puuid].riotId = p.riotIdGameName + '#' + p.riotIdTagline;
+      participantStats[p.puuid].champName = p.championName;
+      participantStats[p.puuid].kills = p.kills;
+      participantStats[p.puuid].deaths = p.deaths;
+      participantStats[p.puuid].assists = p.assists;
+      participantStats[p.puuid].creepScore = p.totalMinionsKilled + p.neutralMinionsKilled;
     }
 
     matchStats[matchIds[index]] = {
@@ -149,7 +178,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       assists: participant.assists,
       creepScore,
       win: won,
-      participantRiotIds
+      participantStats
     };
   });
 

@@ -333,11 +333,24 @@ export default function RiotProfilePage() {
       <div className="popup-overlay" onClick={() => setShowPopup(false)}>
         <div className="popup-content" onClick={(e) => e.stopPropagation()}>
           <h3>Match Participants</h3>
-          <ul>
-            {selectedMatch.participantRiotIds && selectedMatch.participantRiotIds.map((riotId: string, idx: number) => (
-              <li key={idx}>{riotId}</li>
-            ))}
-          </ul>
+          <div className="teams-container">
+            <div className="team team-blue">
+              <h4>Team 1</h4>
+              <ul>
+                {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(0, 5).map(([puuid, stats]: [string, any], idx) => (
+                  <li key={idx}>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="team team-red">
+              <h4>Team 2</h4>
+              <ul>
+                {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(5, 10).map(([puuid, stats]: [string, any], idx) => (
+                  <li key={idx}>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     )}
