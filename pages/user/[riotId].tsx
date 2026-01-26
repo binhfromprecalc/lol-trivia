@@ -335,19 +335,41 @@ export default function RiotProfilePage() {
           <h3>Match Participants</h3>
           <div className="teams-container">
             <div className="team team-blue">
-              <h4>Team 1</h4>
+              <h4>Blue Team</h4>
               <ul>
-                {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(0, 5).map(([puuid, stats]: [string, any], idx) => (
-                  <li key={idx}>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</li>
-                ))}
+                {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(0, 5).map(([puuid, stats]: [string, any], idx) => {
+                  const sanitizedChampName = specialCases[stats.champName]
+                    || stats.champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+                  return (
+                    <li key={idx} className="participant-item">
+                      <img
+                        src={`/img/champions/${sanitizedChampName}.png`}
+                        alt={stats.champName}
+                        className="champion-icon"
+                      />
+                      <span>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div className="team team-red">
-              <h4>Team 2</h4>
+              <h4>Red Team</h4>
               <ul>
-                {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(5, 10).map(([puuid, stats]: [string, any], idx) => (
-                  <li key={idx}>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</li>
-                ))}
+                {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(5, 10).map(([puuid, stats]: [string, any], idx) => {
+                  const sanitizedChampName = specialCases[stats.champName]
+                    || stats.champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+                  return (
+                    <li key={idx} className="participant-item">
+                      <img
+                        src={`/img/champions/${sanitizedChampName}.png`}
+                        alt={stats.champName}
+                        className="champion-icon"
+                      />
+                      <span>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>

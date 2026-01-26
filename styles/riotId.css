@@ -300,6 +300,21 @@
   color: #e1e1e1;
   font-size: 14px;
   border-left: 3px solid #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team li .champion-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.team li span {
+  flex: 1;
 }
 
 .team-blue {
