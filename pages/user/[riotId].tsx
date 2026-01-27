@@ -336,6 +336,10 @@ export default function RiotProfilePage() {
           <div className="teams-container">
             <div className="team team-blue">
               <h4>Blue Team</h4>
+              <div className="stats-labels">
+                <span className="label-kda">KDA</span>
+                <span className="label-cs">CS</span>
+              </div>
               <ul>
                 {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(0, 5).map(([puuid, stats]: [string, any], idx) => {
                   const sanitizedChampName = specialCases[stats.champName]
@@ -347,7 +351,9 @@ export default function RiotProfilePage() {
                         alt={stats.champName}
                         className="champion-icon"
                       />
-                      <span>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</span>
+                      <span className="player-info">{stats.riotId} {stats.champName}</span>
+                      <span className="kda-stat">{stats.kills} / {stats.deaths} / {stats.assists}</span>
+                      <span className="cs-stat">{stats.creepScore}</span>
                     </li>
                   );
                 })}
@@ -355,6 +361,10 @@ export default function RiotProfilePage() {
             </div>
             <div className="team team-red">
               <h4>Red Team</h4>
+              <div className="stats-labels">
+                <span className="label-kda">KDA</span>
+                <span className="label-cs">CS</span>
+              </div>
               <ul>
                 {selectedMatch.participantStats && Object.entries(selectedMatch.participantStats).slice(5, 10).map(([puuid, stats]: [string, any], idx) => {
                   const sanitizedChampName = specialCases[stats.champName]
@@ -366,7 +376,9 @@ export default function RiotProfilePage() {
                         alt={stats.champName}
                         className="champion-icon"
                       />
-                      <span>{stats.riotId} {stats.champName} {stats.kills} / {stats.deaths} / {stats.assists}</span>
+                      <span className="player-info">{stats.riotId} {stats.champName}</span>
+                      <span className="kda-stat">{stats.kills} / {stats.deaths} / {stats.assists}</span>
+                      <span className="cs-stat">{stats.creepScore}</span>
                     </li>
                   );
                 })}

@@ -313,8 +313,43 @@
   flex-shrink: 0;
 }
 
-.team li span {
+.team li .player-info {
   flex: 1;
+}
+
+.team li .kda-stat {
+  min-width: 80px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.team li .cs-stat {
+  min-width: 40px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.stats-labels {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a0a0a0;
+}
+
+.stats-labels .label-kda {
+  flex: 0 0 80px;
+  text-align: center;
+  margin-left: auto;
+}
+
+.stats-labels .label-cs {
+  flex: 0 0 40px;
+  text-align: center;
 }
 
 .team-blue {
