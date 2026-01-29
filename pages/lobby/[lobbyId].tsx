@@ -35,8 +35,6 @@ export default function LobbyPage() {
   const [newMessage, setNewMessage] = useState("");
   const [playerName, setPlayerName] = useState<string>("");
 
-  /** ---------------- Helper Functions ---------------- */
-  // Fetch profile icon for a single player
   async function fetchProfileIcon(player: Player): Promise<number> {
     try {
       const { gameName, tagLine } = player;
@@ -53,14 +51,11 @@ export default function LobbyPage() {
     }
   }
 
-  // Merge players while ensuring each has a profileIconId and no duplicates
   async function mergePlayersWithIcons(current: Player[], incoming: Player[]): Promise<Player[]> {
     const map = new Map<string, Player>();
 
-    // Add existing players
     for (const p of current) map.set(p.riotId, p);
 
-    // Add/update incoming players
     for (const p of incoming) {
       const existing = map.get(p.riotId);
       let profileIconId = p.profileIconId ?? existing?.profileIconId;
@@ -73,7 +68,6 @@ export default function LobbyPage() {
     return Array.from(map.values());
   }
 
-  /** ---------------- useEffect: Lobby Setup ---------------- */
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
@@ -83,11 +77,9 @@ export default function LobbyPage() {
     if (!riotId) return;
     setPlayerName(riotId);
 
-    // Always join socket, even if host, to ensure chat works
     socket.emit("join-lobby", { lobbyId, playerName: riotId });
     joinedViaSocket = true;
 
-    // Fetch initial lobby data
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
       .then(async (data: Lobby) => {
@@ -98,7 +90,6 @@ export default function LobbyPage() {
       })
       .catch(console.error);
 
-    /** ---------------- Socket Event Handlers ---------------- */
     const handleLobbyState = async ({ lobby }: { lobby: Lobby }) => {
       setLobby(lobby);
       const updatedPlayers = await mergePlayersWithIcons(players, lobby.players ?? []);
@@ -119,7 +110,6 @@ export default function LobbyPage() {
       setMessages((prev) => [...prev, { player: "SYSTEM", text: msg.text, system: true }]);
     const handleStartGame = ({ lobbyId }: { lobbyId: string }) => router.push(`/game/${lobbyId}`);
 
-    /** ---------------- Socket Subscriptions ---------------- */
     socket.on("lobby-state", handleLobbyState);
     socket.on("player-joined", handlePlayerJoined);
     socket.on("player-left", handlePlayerLeft);
@@ -127,7 +117,6 @@ export default function LobbyPage() {
     socket.on("system-message", handleSystemMessage);
     socket.on("start-game", handleStartGame);
 
-    /** ---------------- Cleanup ---------------- */
     return () => {
       socket.off("lobby-state", handleLobbyState);
       socket.off("player-joined", handlePlayerJoined);
@@ -140,7 +129,6 @@ export default function LobbyPage() {
     };
   }, [lobbyId]);
 
-  /** ---------------- UI Actions ---------------- */
   const sendMessage = () => {
     if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
     socket.emit("chat-message", { lobbyId, text: newMessage });
@@ -155,7 +143,6 @@ export default function LobbyPage() {
 
   const isHost = lobby.host?.riotId === playerName;
 
-  /** ---------------- Render ---------------- */
   return (
     <div className="lobby-container">
       <h1 className="lobby-title">
