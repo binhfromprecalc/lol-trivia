@@ -118,8 +118,6 @@ export default function RiotProfilePage() {
 
   const handleCreateLobby = async () => {
     try {
-      
-
       const res = await fetch('/api/lobby/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

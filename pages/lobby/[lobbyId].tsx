@@ -22,124 +22,150 @@ interface Lobby {
   code: string;
   started: boolean;
   players: Player[];
-  host?: Player | null; 
+  host?: Player | null;
 }
 
 export default function LobbyPage() {
   const router = useRouter();
   const { lobbyId } = router.query;
+
   const [lobby, setLobby] = useState<Lobby | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [playerName, setPlayerName] = useState<string>("");
-  const [profile, setProfile] = useState<any>(null);
+
+  /** ---------------- Helper Functions ---------------- */
+  // Fetch profile icon for a single player
+  async function fetchProfileIcon(player: Player): Promise<number> {
+    try {
+      const { gameName, tagLine } = player;
+      const accRes = await fetch(`/api/account?gameName=${gameName}&tagLine=${tagLine}`);
+      const account = await accRes.json();
+
+      const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(account.puuid)}`);
+      const profile = await profileRes.json();
+
+      return profile.profileIconId ?? 0;
+    } catch (err) {
+      console.error("Error fetching profile icon for", player.riotId, err);
+      return 0;
+    }
+  }
+
+  // Merge players while ensuring each has a profileIconId and no duplicates
+  async function mergePlayersWithIcons(current: Player[], incoming: Player[]): Promise<Player[]> {
+    const map = new Map<string, Player>();
+
+    // Add existing players
+    for (const p of current) map.set(p.riotId, p);
+
+    // Add/update incoming players
+    for (const p of incoming) {
+      const existing = map.get(p.riotId);
+      let profileIconId = p.profileIconId ?? existing?.profileIconId;
+      if (profileIconId == null) {
+        profileIconId = await fetchProfileIcon(p);
+      }
+      map.set(p.riotId, { ...existing, ...p, profileIconId });
+    }
+
+    return Array.from(map.values());
+  }
+
+  /** ---------------- useEffect: Lobby Setup ---------------- */
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
+    let joinedViaSocket = false;
+
+    const riotId = localStorage.getItem("riotId");
+    if (!riotId) return;
+    setPlayerName(riotId);
+
+    // Always join socket, even if host, to ensure chat works
+    socket.emit("join-lobby", { lobbyId, playerName: riotId });
+    joinedViaSocket = true;
+
+    // Fetch initial lobby data
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
-      .then((data: Lobby) => {
+      .then(async (data: Lobby) => {
         setLobby(data);
-        setPlayers(data.players ?? []);
+
+        const playersWithIcons = await mergePlayersWithIcons([], data.players ?? []);
+        setPlayers(playersWithIcons);
       })
       .catch(console.error);
 
-    const riotId = localStorage.getItem("riotId");
-    if (riotId) {
-      socket.emit("join-lobby", { lobbyId, playerName: riotId });
-      setPlayerName(riotId);
-    }
+    /** ---------------- Socket Event Handlers ---------------- */
+    const handleLobbyState = async ({ lobby }: { lobby: Lobby }) => {
+      setLobby(lobby);
+      const updatedPlayers = await mergePlayersWithIcons(players, lobby.players ?? []);
+      setPlayers(updatedPlayers);
+    };
 
-    const handlePlayerJoined = ({ player }: { player: Player }) => {
-      setPlayers((prev) =>
-        prev.some((p) => p.riotId === player.riotId) ? prev : [...prev, player]
-      );
+    const handlePlayerJoined = async ({ player }: { player: Player }) => {
+      const updatedPlayers = await mergePlayersWithIcons(players, [player]);
+      setPlayers(updatedPlayers);
     };
 
     const handlePlayerLeft = ({ playerName }: { playerName: string }) => {
-      setPlayers((prev) => prev.filter((p) => p.gameName !== playerName));
+      setPlayers((prev) => prev.filter((p) => p.riotId !== playerName));
     };
 
-    const handleChatMessage = (msg: ChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
-    };
+    const handleChatMessage = (msg: ChatMessage) => setMessages((prev) => [...prev, msg]);
+    const handleSystemMessage = (msg: { text: string }) =>
+      setMessages((prev) => [...prev, { player: "SYSTEM", text: msg.text, system: true }]);
+    const handleStartGame = ({ lobbyId }: { lobbyId: string }) => router.push(`/game/${lobbyId}`);
 
-    const handleSystemMessage = (msg: { text: string }) => {
-      setMessages((prev) => [
-        ...prev,
-        { player: "SYSTEM", text: msg.text, system: true },
-      ]);
-    };
-
-    const handleStartGame = ({ lobbyId }: { lobbyId: string }) => {
-      router.push(`/game/${lobbyId}`);
-    };
-
-    const handleLobbyState = ({ lobby }: { lobby: Lobby }) => {
-      setLobby(lobby);
-      setPlayers(lobby.players ?? []);
-    };
-
-    const fetchProfile = async () => {
-      if (!router.isReady || typeof riotId !== 'string') return;
-      const [name, tag] = riotId.split('#');
-      const res = await fetch(`/api/account?gameName=${name}&tagLine=${tag}`);
-      const result = await res.json();
-      const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`);
-      const profileResult = await profileRes.json();
-      if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
-      setProfile(profileResult);
-    };
-    fetchProfile();
-
+    /** ---------------- Socket Subscriptions ---------------- */
+    socket.on("lobby-state", handleLobbyState);
     socket.on("player-joined", handlePlayerJoined);
     socket.on("player-left", handlePlayerLeft);
     socket.on("chat-message", handleChatMessage);
     socket.on("system-message", handleSystemMessage);
-    socket.on("lobby-state", handleLobbyState);
     socket.on("start-game", handleStartGame);
 
+    /** ---------------- Cleanup ---------------- */
     return () => {
+      socket.off("lobby-state", handleLobbyState);
       socket.off("player-joined", handlePlayerJoined);
       socket.off("player-left", handlePlayerLeft);
       socket.off("chat-message", handleChatMessage);
       socket.off("system-message", handleSystemMessage);
-      socket.off("lobby-state", handleLobbyState);
       socket.off("start-game", handleStartGame);
+
+      if (joinedViaSocket) socket.emit("leave-lobby", { lobbyId });
     };
   }, [lobbyId]);
 
+  /** ---------------- UI Actions ---------------- */
   const sendMessage = () => {
     if (!newMessage.trim() || !lobbyId || typeof lobbyId !== "string") return;
     socket.emit("chat-message", { lobbyId, text: newMessage });
     setNewMessage("");
   };
 
-  const handleStartGame = () => {
+  const handleStartGameClick = () => {
     socket.emit("start-game", { lobbyId });
   };
 
   if (!lobby) return <p className="loading">Loading lobby...</p>;
 
-  const isHost =
-    lobby.host &&
-    playerName &&
-    lobby.host.riotId === playerName; 
+  const isHost = lobby.host?.riotId === playerName;
 
+  /** ---------------- Render ---------------- */
   return (
     <div className="lobby-container">
       <h1 className="lobby-title">
         Lobby Code: <code>{lobby.code}</code>
       </h1>
+
       <p className="lobby-host">
-        Host:{" "}
-        <strong>
-          {lobby.host ? lobby.host.gameName : "Unknown host"}
-        </strong>
+        Host: <strong>{lobby.host ? lobby.host.gameName : "Unknown host"}</strong>
       </p>
 
-      {/* Players list */}
       <h2 className="section-title">Players:</h2>
       <ul className="players-list">
         {players.length > 0 ? (
@@ -159,12 +185,11 @@ export default function LobbyPage() {
       </ul>
 
       {isHost && !lobby.started && (
-        <button className="start-button" onClick={handleStartGame}>
+        <button className="start-button" onClick={handleStartGameClick}>
           Start Game
         </button>
       )}
 
-      {/* Chat section */}
       <div className="chat-section">
         <h2 className="section-title">Chat:</h2>
         <div id="chat-messages" className="chat-messages">

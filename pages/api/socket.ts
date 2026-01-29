@@ -48,15 +48,6 @@ async function startRound(io: Server, lobbyId: string) {
 
   const data = await res.json();
 
-  /**
-   * Expected API response shape:
-   * {
-   *   question: string,
-   *   options: string[],
-   *   correctIndex: number,
-   *   duration?: number
-   * }
-   */
 
   const round: ActiveRound = {
     question: data.question,
@@ -155,27 +146,41 @@ const ioHandler = (_: NextApiRequest, res: any) => {
 
       socket.on("join-lobby", async ({ lobbyId, playerName }) => {
         try {
+          if (!lobbyId || !playerName) return;
+
           socket.join(lobbyId);
           socket.data.lobbyId = lobbyId;
           socket.data.playerName = playerName;
-
-          const player = await prisma.player.findUnique({
-            where: { riotId: playerName },
-          });
-
-          if (player) {
-            await prisma.player.update({
-              where: { id: player.id },
-              data: { lobbyId },
-            });
-          }
 
           const lobby = await prisma.lobby.findUnique({
             where: { id: lobbyId },
             include: { host: true, players: true },
           });
 
-          io.to(lobbyId).emit("lobby-state", { lobby });
+          if (!lobby) return;
+          const alreadyInLobby = lobby.players.some(
+            (p) => p.riotId === playerName
+          );
+
+          if (!alreadyInLobby) {
+            const player = await prisma.player.findUnique({
+              where: { riotId: playerName },
+            });
+
+            if (player) {
+              await prisma.player.update({
+                where: { id: player.id },
+                data: { lobbyId },
+              });
+            }
+          }
+
+          const updatedLobby = await prisma.lobby.findUnique({
+            where: { id: lobbyId },
+            include: { host: true, players: true },
+          });
+
+          io.to(lobbyId).emit("lobby-state", { lobby: updatedLobby });
         } catch (err) {
           console.error("Error joining lobby:", err);
         }

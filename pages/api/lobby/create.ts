@@ -15,7 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
    const player = await prisma.player.upsert({
       where: { riotId },
-      update: {},
+      update: {
+        gameName,
+        tagLine,
+        riotId,
+      },
       create: {
         gameName,
         tagLine,
@@ -28,9 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         code: generateLobbyCode(),
         started: false,
-        host: { 
-          connect: { id: player.id }, 
-        },
+        host: { connect: { id: player.id } },
         players: {
           connect: { id: player.id },
         },
