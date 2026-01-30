@@ -1,7 +1,5 @@
 import { io } from "socket.io-client";
 
-const socket = io({
-  path: "/api/socket",
-});
+const socket = io();
 
 export default socket;

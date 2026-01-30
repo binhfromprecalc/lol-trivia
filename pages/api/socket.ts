@@ -143,7 +143,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
 
     io.on("connection", (socket) => {
       console.log("Client connected:", socket.id);
-
       socket.on("join-lobby", async ({ lobbyId, playerName }) => {
         try {
           if (!lobbyId || !playerName) return;
@@ -152,39 +151,27 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           socket.data.lobbyId = lobbyId;
           socket.data.playerName = playerName;
 
+          const player = await prisma.player.findUnique({ where: { riotId: playerName } });
+          if (player) {
+            await prisma.player.update({ where: { id: player.id }, data: { lobbyId } });
+          }
+
           const lobby = await prisma.lobby.findUnique({
             where: { id: lobbyId },
             include: { host: true, players: true },
           });
-
           if (!lobby) return;
-          const alreadyInLobby = lobby.players.some(
-            (p) => p.riotId === playerName
-          );
 
-          if (!alreadyInLobby) {
-            const player = await prisma.player.findUnique({
-              where: { riotId: playerName },
-            });
+          io.to(lobbyId).emit("lobby-state", { lobby });
 
-            if (player) {
-              await prisma.player.update({
-                where: { id: player.id },
-                data: { lobbyId },
-              });
-            }
-          }
+          socket.to(lobbyId).emit("player-joined", { player });
+          io.to(lobbyId).emit("system-message", { text: `${playerName} has joined the lobby.` });
 
-          const updatedLobby = await prisma.lobby.findUnique({
-            where: { id: lobbyId },
-            include: { host: true, players: true },
-          });
-
-          io.to(lobbyId).emit("lobby-state", { lobby: updatedLobby });
         } catch (err) {
           console.error("Error joining lobby:", err);
         }
       });
+
 
       socket.on("chat-message", ({ lobbyId, text }) => {
         const player = socket.data.playerName;

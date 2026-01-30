@@ -48,9 +48,9 @@ export default function RiotProfilePage() {
 
   useEffect(() => {
     if (!router.isReady || typeof riotId !== 'string') return;
-    const [name, tag] = riotId.split('-');
+    const [name, tag] = riotId.split('#');
     if (!name || !tag) {
-      setError('Riot ID must be in the format Name-Tag (e.g. Faker-KR)');
+      setError('Riot ID must be in the format Name#Tag (e.g. Faker#KR)');
       return;
     }
 

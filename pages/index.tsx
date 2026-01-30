@@ -29,9 +29,8 @@ export default function Home() {
       return;
     }
 
-    const riotIdSlug = encodeURIComponent(`${gameName}-${tagLine}`);
-    localStorage.setItem('riotId', `${gameName}#${tagLine}`);
-    router.push(`/user/${riotIdSlug}`);
+    localStorage.setItem('riotId', riotId);
+    router.push(`/user/${encodeURIComponent(riotId)}`);
   };
 
   return (
