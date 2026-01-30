@@ -35,39 +35,6 @@ export default function LobbyPage() {
   const [newMessage, setNewMessage] = useState("");
   const [playerName, setPlayerName] = useState<string>("");
 
-  async function fetchProfileIcon(player: Player): Promise<number> {
-    try {
-      const { gameName, tagLine } = player;
-      const accRes = await fetch(`/api/account?gameName=${gameName}&tagLine=${tagLine}`);
-      const account = await accRes.json();
-
-      const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(account.puuid)}`);
-      const profile = await profileRes.json();
-
-      return profile.profileIconId ?? 0;
-    } catch (err) {
-      console.error("Error fetching profile icon for", player.riotId, err);
-      return 0;
-    }
-  }
-
-  async function mergePlayersWithIcons(current: Player[], incoming: Player[]): Promise<Player[]> {
-    const map = new Map<string, Player>();
-
-    for (const p of current) map.set(p.riotId, p);
-
-    for (const p of incoming) {
-      const existing = map.get(p.riotId);
-      let profileIconId = p.profileIconId ?? existing?.profileIconId;
-      if (profileIconId == null) {
-        profileIconId = await fetchProfileIcon(p);
-      }
-      map.set(p.riotId, { ...existing, ...p, profileIconId });
-    }
-
-    return Array.from(map.values());
-  }
-
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
 
@@ -85,19 +52,17 @@ export default function LobbyPage() {
       .then(async (data: Lobby) => {
         setLobby(data);
 
-        const playersWithIcons = await mergePlayersWithIcons([], data.players ?? []);
-        setPlayers(playersWithIcons);
+        setPlayers(data.players || []);
       })
       .catch(console.error);
 
     const handleLobbyState = async ({ lobby }: { lobby: Lobby }) => {
       setLobby(lobby);
-      const updatedPlayers = await mergePlayersWithIcons(players, lobby.players ?? []);
-      setPlayers(updatedPlayers);
+      setPlayers(lobby.players || []);
     };
 
     const handlePlayerJoined = async ({ player }: { player: Player }) => {
-      const updatedPlayers = await mergePlayersWithIcons(players, [player]);
+      const updatedPlayers = [...players, player];
       setPlayers(updatedPlayers);
     };
 
