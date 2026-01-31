@@ -18,7 +18,6 @@ async function leastPlayedChampion({ riotId}: { riotId: string}) {
   });
 
   const correctAnswer = mastery[0];
-  console.log(mastery);
   const options = mastery.map((m) => m.championId);
 
   return {
@@ -36,7 +35,6 @@ async function mostPlayedChampion({ riotId}: { riotId: string}) {
   });
 
   const correctAnswer = mastery[0];
-  console.log(mastery);
   const options = mastery.map((m) => m.championId);
 
   return {

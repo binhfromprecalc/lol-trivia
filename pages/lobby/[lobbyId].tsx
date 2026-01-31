@@ -61,9 +61,11 @@ export default function LobbyPage() {
       setPlayers(lobby.players || []);
     };
 
-    const handlePlayerJoined = async ({ player }: { player: Player }) => {
-      const updatedPlayers = [...players, player];
-      setPlayers(updatedPlayers);
+    const handlePlayerJoined = ({ player }: { player: Player }) => {
+      setPlayers(prev => {
+        if (prev.some(p => p.id === player.id)) return prev;
+        return [...prev, player];
+      });
     };
 
     const handlePlayerLeft = ({ playerName }: { playerName: string }) => {
@@ -122,7 +124,7 @@ export default function LobbyPage() {
       <ul className="players-list">
         {players.length > 0 ? (
           players.map((p) => (
-            <li key={p.riotId} className="profile-name">
+            <li key={p.id} className="profile-name">
               <img
                 src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${p.profileIconId}.png`}
                 alt={`${p.gameName} Profile Icon`}

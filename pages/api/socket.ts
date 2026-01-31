@@ -16,19 +16,16 @@ interface ActiveRound {
 const activeGames = new Map<string, ActiveRound>();
 
 async function startRound(io: Server, lobbyId: string) {
-  console.log("startRound called for lobby", lobbyId);
   const lobby = await prisma.lobby.findUnique({
     where: { id: lobbyId },
     include: { players: true },
   });
 
-  console.log("Lobby:", lobby);
 
   if (!lobby || lobby.players.length === 0) return;
 
   const randomPlayer =
     lobby.players[Math.floor(Math.random() * lobby.players.length)];
-  console.log("Random Player:", randomPlayer);
   const res = await fetch(`${PLACEHOLDER_URL}/api/game/question`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -146,7 +143,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
       socket.on("join-lobby", async ({ lobbyId, playerName }) => {
         try {
           if (!lobbyId || !playerName) return;
-
           socket.join(lobbyId);
           socket.data.lobbyId = lobbyId;
           socket.data.playerName = playerName;
@@ -163,8 +159,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           if (!lobby) return;
 
           io.to(lobbyId).emit("lobby-state", { lobby });
-
-          socket.to(lobbyId).emit("player-joined", { player });
           io.to(lobbyId).emit("system-message", { text: `${playerName} has joined the lobby.` });
 
         } catch (err) {
