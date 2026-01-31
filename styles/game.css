@@ -77,12 +77,6 @@
   gap: 8px;
 }
 
-.chat-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ffffffff;
-  border-radius: 6px;
-}
 
 .question {
   font-weight: bold;
@@ -91,7 +85,7 @@
 
 .chat-box {
   position: fixed;
-  bottom: 20px;
+  bottom: 10px;
   left: 20px;
   width: 380px;
 
@@ -107,11 +101,6 @@
 .chat-player {
   font-weight: 600;
   color: #7bb0ff;
-}
-
-.chat-input-container {
-  display: flex;
-  gap: 6px;
 }
 
 .chat-input {

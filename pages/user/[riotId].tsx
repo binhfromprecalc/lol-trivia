@@ -329,7 +329,7 @@ export default function RiotProfilePage() {
 
     {showPopup && selectedMatch && (() => {
       const participants = selectedMatch.participantStats ? Object.entries(selectedMatch.participantStats) : [];
-      const isArena = selectedMatch.queueType === 1700;
+      const isArena = queueTypeMap[selectedMatch.queueType] == 'Arena';
       const numTeams = isArena ? 8 : 2;
       const playersPerTeam = isArena ? 2 : 5;
       
