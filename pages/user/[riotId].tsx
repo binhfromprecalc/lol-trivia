@@ -328,31 +328,55 @@ export default function RiotProfilePage() {
     </div>
 
     {showPopup && selectedMatch && (() => {
-      const participants = selectedMatch.participantStats ? Object.entries(selectedMatch.participantStats) : [];
-      const isArena = queueTypeMap[selectedMatch.queueType] == 'Arena';
-      const numTeams = isArena ? 8 : 2;
-      const playersPerTeam = isArena ? 2 : 5;
-      
-      const teamNames = isArena 
-        ? ['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Team 6', 'Team 7', 'Team 8']
-        : ['Blue Team', 'Red Team'];
-      
+      const participants = selectedMatch.participantStats
+        ? Object.entries(selectedMatch.participantStats).map(([puuid, stats]) => ({
+            puuid,
+            ...(stats as any),
+          }))
+        : [];
+
+      const isArena = queueTypeMap[selectedMatch.queueType] === 'Arena';
+
+      const teamsMap: Record<number, any[]> = {};
+      for (const p of participants) {
+        if (!teamsMap[p.teamId]) {
+          teamsMap[p.teamId] = [];
+        }
+        teamsMap[p.teamId].push(p);
+      }
+
+      const sortedTeamIds = Object.keys(teamsMap)
+        .map(Number)
+        .sort((a, b) => a - b);
+
+      const getTeamName = (teamId: number, index: number) => {
+        if (isArena) return `Team ${index + 1}`;
+        return teamId === 100 ? 'Blue Team' : 'Red Team';
+      };
+
       return (
         <div className="popup-overlay" onClick={() => setShowPopup(false)}>
           <div className="popup-content" onClick={(e) => e.stopPropagation()}>
             <h3>Match Participants</h3>
+
             <div className={`teams-container ${isArena ? 'teams-grid' : ''}`}>
-              {Array.from({ length: numTeams }).map((_, teamIdx) => (
-                <div key={teamIdx} className="team">
-                  <h4>{teamNames[teamIdx]}</h4>
+              {sortedTeamIds.map((teamId, teamIdx) => (
+                <div key={teamId} className="team">
+                  <h4>{getTeamName(teamId, teamIdx)}</h4>
+
                   <div className="stats-labels">
                     <span className="label-kda">KDA</span>
                     {!isArena && <span className="label-cs">CS</span>}
                   </div>
+
                   <ul>
-                    {participants.slice(teamIdx * playersPerTeam, (teamIdx + 1) * playersPerTeam).map(([puuid, stats]: [string, any], idx) => {
-                      const sanitizedChampName = specialCases[stats.champName]
-                        || stats.champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+                    {teamsMap[teamId].map((stats, idx) => {
+                      const sanitizedChampName =
+                        specialCases[stats.champName] ||
+                        stats.champName
+                          .replace(/\s/g, '')
+                          .replace(/[^a-zA-Z]/g, '');
+
                       return (
                         <li key={idx} className="participant-item">
                           <img
@@ -360,9 +384,20 @@ export default function RiotProfilePage() {
                             alt={stats.champName}
                             className="champion-icon"
                           />
-                          <span className="player-info">{stats.riotId} {stats.champName}</span>
-                          <span className="kda-stat">{stats.kills} / {stats.deaths} / {stats.assists}</span>
-                          {!isArena && <span className="cs-stat">{stats.creepScore}</span>}
+
+                          <span className="player-info">
+                            {stats.riotId} {stats.champName}
+                          </span>
+
+                          <span className="kda-stat">
+                            {stats.kills} / {stats.deaths} / {stats.assists}
+                          </span>
+
+                          {!isArena && (
+                            <span className="cs-stat">
+                              {stats.creepScore}
+                            </span>
+                          )}
                         </li>
                       );
                     })}
@@ -374,6 +409,7 @@ export default function RiotProfilePage() {
         </div>
       );
     })()}
+
     </>
   );
 }

@@ -3,9 +3,6 @@ import axios from 'axios';
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
 const ACCOUNT_REGION = 'americas';
 
-/**
- * Fetch account information by Riot ID.
- */
 export async function getAccountByRiotId(gameName: string, tagLine: string) {
   const res = await axios.get(
     `https://${ACCOUNT_REGION}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${(gameName)}/${(tagLine)}`,
@@ -22,9 +19,6 @@ export async function getSummonerByPUUID(puuid: string) {
   return res.data;
 }
 
-/** 
- * Fetch champion masteries by PUUID.
- */
 export async function getChampionMasteriesByPUUID(puuid: string, platformRegion: string) {
   const res = await axios.get(
     `https://${platformRegion}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}`,
@@ -40,9 +34,6 @@ export async function getChampionMasteriesByPUUID(puuid: string, platformRegion:
   return champMasteries;
 }
 
-/**
- * Fetch ranked entries by PUUID.
- */
 export async function getRankedEntriesByPUUID(puuid: string, platformRegion: string) {
   const res = await axios.get(
     `https://${platformRegion}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`,
@@ -51,9 +42,6 @@ export async function getRankedEntriesByPUUID(puuid: string, platformRegion: str
   return res.data;
 }
 
-/**
- * Fetch winrate data by PUUID and calculate it.
- */
 export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
   const matchIdsRes = await axios.get(
     `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`,
@@ -106,6 +94,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       deaths: number;
       assists: number;
       creepScore: number;
+      teamId: number;
     }>;
   }> = {};
 
@@ -150,6 +139,7 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
       deaths: number;
       assists: number;
       creepScore: number;
+      teamId: number;
     }> = {};
     for (const p of match.info.participants) {
       if(participantStats[p.puuid] === undefined) {
@@ -159,7 +149,8 @@ export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
           kills: 0,
           deaths: 0,
           assists: 0,
-          creepScore: 0
+          creepScore: 0,
+          teamId: p.teamId,
         };
       }
       participantStats[p.puuid].riotId = p.riotIdGameName + '#' + p.riotIdTagline;
