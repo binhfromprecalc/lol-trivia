@@ -8,7 +8,7 @@ interface ActiveRound {
   question: string;
   options: (string | number)[];
   answer: string | number;
-  answers: Map<string, number>;
+  answers: Map<string, number>; 
   timeLeft: number;
   timer?: NodeJS.Timeout;
 }
@@ -21,18 +21,16 @@ async function startRound(io: Server, lobbyId: string) {
     include: { players: true },
   });
 
-
   if (!lobby || lobby.players.length === 0) return;
 
   const randomPlayer =
     lobby.players[Math.floor(Math.random() * lobby.players.length)];
+
   const res = await fetch(`${PLACEHOLDER_URL}/api/game/question`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    riotId: randomPlayer.riotId,
-  }),
-});
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ riotId: randomPlayer.riotId }),
+  });
 
   if (!res.ok) {
     io.to(lobbyId).emit("chat-message", {
@@ -44,7 +42,6 @@ async function startRound(io: Server, lobbyId: string) {
   }
 
   const data = await res.json();
-
 
   const round: ActiveRound = {
     question: data.question,
@@ -62,7 +59,7 @@ async function startRound(io: Server, lobbyId: string) {
     duration: round.timeLeft,
   });
 
-  round.timer = setInterval(() => {
+  round.timer = setInterval(async () => {
     round.timeLeft--;
     io.to(lobbyId).emit("timer", { timeLeft: round.timeLeft });
 
@@ -71,7 +68,6 @@ async function startRound(io: Server, lobbyId: string) {
     }
   }, 1000);
 }
-
 
 function endRound(io: Server, lobbyId: string) {
   const round = activeGames.get(lobbyId);
@@ -88,8 +84,12 @@ function endRound(io: Server, lobbyId: string) {
     answer: round.answer,
     counts,
   });
+
+  activeGames.delete(lobbyId);
+
   setTimeout(() => startRound(io, lobbyId), 2000);
 }
+
 
 
 
@@ -141,42 +141,53 @@ const ioHandler = (_: NextApiRequest, res: any) => {
     io.on("connection", (socket) => {
       console.log("Client connected:", socket.id);
       socket.on("join-lobby", async ({ lobbyId, playerName }) => {
-        try {
-          if (!lobbyId || !playerName) return;
-          socket.join(lobbyId);
-          socket.data.lobbyId = lobbyId;
-          socket.data.playerName = playerName;
+        if (!lobbyId || !playerName) return;
 
-          const player = await prisma.player.findUnique({ where: { riotId: playerName } });
-          if (player) {
-            await prisma.player.update({ where: { id: player.id }, data: { lobbyId } });
-          }
+        socket.join(lobbyId);
+        socket.data.lobbyId = lobbyId;
 
-          const lobby = await prisma.lobby.findUnique({
-            where: { id: lobbyId },
-            include: { host: true, players: true },
-          });
-          if (!lobby) return;
+        const player = await prisma.player.findUnique({
+          where: { riotId: playerName },
+        });
 
-          io.to(lobbyId).emit("lobby-state", { lobby });
-          io.to(lobbyId).emit("system-message", { text: `${playerName} has joined the lobby.` });
+        if (!player) return;
 
-        } catch (err) {
-          console.error("Error joining lobby:", err);
-        }
-      });
+        socket.data.playerId = player.id;
+        socket.data.playerName = player.riotId; 
 
+        await prisma.player.update({
+          where: { id: player.id },
+          data: { lobbyId },
+        });
 
-      socket.on("chat-message", ({ lobbyId, text }) => {
-        const player = socket.data.playerName;
-        if (!player || !lobbyId) return;
+        const lobby = await prisma.lobby.findUnique({
+          where: { id: lobbyId },
+          include: { host: true, players: true },
+        });
+
+        io.to(lobbyId).emit("lobby-state", { lobby });
 
         io.to(lobbyId).emit("chat-message", {
-          player,
-          text,
+          player: "SYSTEM",
+          text: `${player.riotId} has joined the lobby.`,
+          system: true,
           timestamp: Date.now(),
         });
       });
+
+
+
+      socket.on("chat-message", ({ lobbyId, text }) => {
+        if (!text?.trim()) return;
+
+        io.to(lobbyId).emit("chat-message", {
+          player: socket.data.playerName ?? "Unknown",
+          text: text.slice(0, 300),
+          timestamp: Date.now(),
+        });
+      });
+
+
 
       socket.on("disconnect", () => {
         console.log("Client disconnected:", socket.id);
@@ -247,24 +258,24 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           });
         }
       });
-        socket.on("submit-answer", ({ lobbyId, answerIndex }) => {
-        const round = activeGames.get(lobbyId);
-        const player = socket.data.playerName;
-        if (!round || !player) return;
+        socket.on("submit-answer", async ({ lobbyId, answerIndex }) => {
+          const round = activeGames.get(lobbyId);
+          if (!round) return;
 
-        if (round.answers.has(player)) return;
+          const playerKey = socket.id;
 
-        round.answers.set(player, answerIndex);
+          if (round.answers.has(playerKey)) return;
 
-        prisma.lobby
-          .findUnique({ where: { id: lobbyId }, include: { players: true } })
-          .then((lobby) => {
-            if (!lobby) return;
-            if (round.answers.size >= lobby.players.length) {
-              endRound(io, lobbyId);
-            }
-          });
+          round.answers.set(playerKey, answerIndex);
+
+          const sockets = await io.in(lobbyId).fetchSockets();
+          const expectedPlayers = sockets.length;
+
+          if (round.answers.size >= expectedPlayers) {
+            endRound(io, lobbyId);
+          }
         });
+
   });
     res.socket.server.io = io;
   }
