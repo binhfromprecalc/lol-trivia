@@ -135,14 +135,16 @@
   background: linear-gradient(135deg, #46178f, #6a1fd1);
   color: white;
   padding: 24px;
+  --answers-width: 900px;
+  --answers-gutter: 24px;
 }
-
 .top-bar {
   display: flex;
   justify-content: center;
-  margin-bottom: 16px;
+  width: var(--answers-width);
+  max-width: calc(100vw - (var(--answers-gutter) * 2));
+  margin: 0 var(--answers-gutter) 16px auto;
 }
-
 .timer {
   background: #ffcc00;
   color: black;
@@ -155,29 +157,33 @@
 .question-text {
   text-align: center;
   font-size: 26px;
-  margin-bottom: 32px;
+  width: var(--answers-width);
+  max-width: calc(100vw - (var(--answers-gutter) * 2));
+  margin: 0 var(--answers-gutter) 32px auto;
 }
-
 .answers-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  max-width: 800px;
-  margin: 0 auto 40px;
+  gap: 24px;
+  position: fixed;
+  right: var(--answers-gutter);
+  bottom: var(--answers-gutter);
+  width: var(--answers-width);
+  max-width: calc(100vw - (var(--answers-gutter) * 2));
+  margin: 0;
+  z-index: 10;
 }
-
 .answer-card {
   background: white;
   color: black;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
-  padding: 20px;
+  padding: 90px;
   border-radius: 16px;
   cursor: pointer;
   border: none;
   transition: transform 0.1s ease;
 }
-
 .answer-card:hover:not(:disabled) {
   transform: scale(1.04);
 }
@@ -199,4 +205,6 @@
 .answer-card:disabled {
   cursor: not-allowed;
 }
+
+
 

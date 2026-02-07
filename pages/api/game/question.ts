@@ -10,6 +10,15 @@ const questionGenerators = [
 
 let lastQuestion: number | null = null;
 
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 async function leastPlayedChampion({ riotId}: { riotId: string}) {
   const mastery = await prisma.championMastery.findMany({
     where: { player: { riotId } },
@@ -99,8 +108,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!player)
       return res.status(404).json({ error: "Player not found in DB" });
-
-    const { id } = player;
     
     let randomGen = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
     
@@ -111,10 +118,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await randomGen({ riotId });
     lastQuestion = questionGenerators.indexOf(randomGen);
     
+    const shuffledOptions = shuffle(result.options);
 
     return res.status(200).json({
       question: result.question,
-      options: result.options,
+      options: shuffledOptions,
       answer: result.answer,
       type: randomGen.name,
     });
