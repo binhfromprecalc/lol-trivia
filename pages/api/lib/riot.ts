@@ -42,7 +42,7 @@ export async function getRankedEntriesByPUUID(puuid: string, platformRegion: str
   return res.data;
 }
 
-export async function getWinrateByPUUID(puuid: string, platformRegion: string) {
+export async function getWinrateByPUUID(puuid: string) {
   const matchIdsRes = await axios.get(
     `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`,
     {

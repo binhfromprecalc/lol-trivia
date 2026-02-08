@@ -2,14 +2,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getWinrateByPUUID } from '@lib/riot';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { puuid, platformRegion } = req.query;
+  const { puuid} = req.query;
 
-  if (!puuid || !platformRegion || typeof puuid !== 'string' || typeof platformRegion !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid parameters: puuid or platformRegion' });
+  if (!puuid || typeof puuid !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid parameters: puuid' });
   }
 
   try {
-    const winrateData = await getWinrateByPUUID(puuid, platformRegion);
+    const winrateData = await getWinrateByPUUID(puuid);
     res.status(200).json(winrateData);
   } catch (err: any) {
     console.error('Winrate API error:', err);

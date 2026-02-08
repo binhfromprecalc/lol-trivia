@@ -225,7 +225,7 @@ const ioHandler = (_: NextApiRequest, res: any) => {
               );
               const rankResult = await rankRes.json();
               const winrateRes = await fetch(
-                `${PLACEHOLDER_URL}/api/winrate?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+                `${PLACEHOLDER_URL}/api/winrate?puuid=${encodeURIComponent(account.puuid)}`
               );
               const winrateResult = await winrateRes.json();
 

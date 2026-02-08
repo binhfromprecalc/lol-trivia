@@ -90,7 +90,7 @@ export default function RiotProfilePage() {
         if (!rankRes.ok) throw new Error(rankResult.error || 'Error fetching rank info');
         setRankEntries(rankResult);
 
-        const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
+        const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(result.puuid)}`);
         const winrateResult = await winrateRes.json();
         if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
         setWinrateData(winrateResult);
