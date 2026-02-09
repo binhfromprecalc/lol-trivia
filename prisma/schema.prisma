@@ -8,48 +8,60 @@ datasource db {
 }
 
 model Lobby {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  started   Boolean  @default(false)
+  id      String  @id @default(uuid())
+  code    String  @unique
+  started Boolean @default(false)
 
-  hostId    String?  @unique
-  host      Player?  @relation("LobbyHost", fields: [hostId], references: [id])
+  hostId String? @unique
+  host   Player? @relation("LobbyHost", fields: [hostId], references: [id])
 
   // One-to-many: A lobby can have many players
-  players   Player[] @relation("LobbyPlayers")
+  players Player[] @relation("LobbyPlayers")
 }
 
 model Player {
-  id              String   @id @default(uuid())
-  gameName        String
-  tagLine         String
-  riotId          String   @unique
-  puuid           String?
-  region          String?
-  rank            String?
-  winrate         Float?
-  mostKills       Int?
-  mostDeaths      Int?
-  profileIconId   Int?         
-  summonerLevel   Int?    
+  id            String  @id @default(uuid())
+  gameName      String
+  tagLine       String
+  riotId        String  @unique
+  puuid         String?
+  region        String?
+  rank          String?
+  winrate       Float?
+  mostKills     Int?
+  mostDeaths    Int?
+  profileIconId Int?
+  summonerLevel Int?
 
-  lobbyId         String?
-  lobby           Lobby?   @relation("LobbyPlayers", fields: [lobbyId], references: [id])
-  hostedLobby     Lobby?   @relation("LobbyHost")
+  lobbyId     String?
+  lobby       Lobby?  @relation("LobbyPlayers", fields: [lobbyId], references: [id])
+  hostedLobby Lobby?  @relation("LobbyHost")
 
   championMasteries ChampionMastery[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  PlayerQuestionHistory PlayerQuestionHistory[]
 }
 
 model ChampionMastery {
-  id             String  @id @default(uuid())
+  id             String @id @default(uuid())
   championId     Int
-  championPoints Int       
-  
-  playerId       String
-  player         Player   @relation(fields: [playerId], references: [id])
+  championPoints Int
 
-  @@unique([playerId, championId]) 
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id])
+
+  @@unique([playerId, championId])
+}
+
+model PlayerQuestionHistory {
+  id           String   @id @default(uuid())
+  playerId     String
+  questionType String
+  player       Player   @relation(fields: [playerId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@unique([playerId, questionType])
+  @@index([playerId])
 }

@@ -1,14 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@lib/prisma';
 
-const questionGenerators = [
+const questions = [
   leastPlayedChampion,
   mostPlayedChampion,
   mostKills,
   mostDeaths,
 ];
-
-let lastQuestion: number | null = null;
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items];
@@ -109,16 +107,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!player)
       return res.status(404).json({ error: "Player not found in DB" });
     
-    let randomGen = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
-    
-    while(lastQuestion !== null && lastQuestion === questionGenerators.indexOf(randomGen)) {
-      randomGen = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
+    const askedQuestions = await prisma.playerQuestionHistory.findMany({
+      where: { playerId: player.id },
+      select: { questionType: true },
+    });
+    const askedSet = new Set(askedQuestions.map((q: { questionType: string }) => q.questionType));
+    const availableQuestions = questions.filter((q) => !askedSet.has(q.name));
+
+    if (availableQuestions.length === 0) {
+      return res.status(409).json({ error: "No new questions available for this player" });
     }
 
+    let randomGen = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
     const result = await randomGen({ riotId });
-    lastQuestion = questionGenerators.indexOf(randomGen);
-    
     const shuffledOptions = shuffle(result.options);
+
+    await prisma.playerQuestionHistory.create({
+      data: {
+        playerId: player.id,
+        questionType: randomGen.name,
+      },
+    });
 
     return res.status(200).json({
       question: result.question,
