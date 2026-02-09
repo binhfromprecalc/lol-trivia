@@ -113,6 +113,16 @@
   border-radius: 4px;
 }
 
+.free-response-input.correct {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.5);
+}
+
+.free-response-input.wrong {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.5);
+}
+
 .chat-input::placeholder {
   color: #fafafaff;
 }

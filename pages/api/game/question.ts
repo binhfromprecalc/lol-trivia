@@ -2,12 +2,20 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@lib/prisma';
 import championData from '@data/champions.json';
 
-const questions = [
+type QuestionResult = {
+  question: string;
+  options: (string | number)[];
+  answer: string | number;
+};
+
+type QuestionGenerator = (args: { riotId: string }) => Promise<QuestionResult>;
+
+const questions: QuestionGenerator[] = [
   leastPlayedChampion,
   mostPlayedChampion,
   mostKills,
   mostDeaths,
-  randomChampionMastery
+  randomChampionMastery,
 ];
 
 const typedChampionData: Record<string, { name: string }> = championData;
@@ -21,24 +29,26 @@ function shuffle<T>(items: T[]): T[] {
   return result;
 }
 
-async function leastPlayedChampion({ riotId}: { riotId: string}) {
+async function leastPlayedChampion({ riotId }: { riotId: string }): Promise<QuestionResult> {
   const mastery = await prisma.championMastery.findMany({
     where: { player: { riotId } },
     orderBy: { championPoints: "asc" },
     take: 4,
   });
 
-  const correctAnswer = mastery[0];
-  const options = mastery.map((m) => m.championId);
+  const correctAnswer = typedChampionData[mastery[0]?.championId ?? 0];
+  const options = mastery.map(
+    (m) => typedChampionData[m.championId]?.name ?? "Unknown"
+  ); 
 
   return {
     question: `Who is ${riotId ?? "this player"}'s least played champion?`,
     options: options,
-    answer: correctAnswer?.championId ?? "Unknown",
+    answer: correctAnswer?.name ?? "Unknown",
   };
 }
 
-async function randomChampionMastery({ riotId}: { riotId: string}) { 
+async function randomChampionMastery({ riotId }: { riotId: string }): Promise<QuestionResult> { 
   const count = await prisma.championMastery.count({
     where: { player: { riotId } },
   });
@@ -50,29 +60,31 @@ async function randomChampionMastery({ riotId}: { riotId: string}) {
 
   return {
     question: `Which player has ${mastery[0]?.championPoints ?? 0} mastery points on ${typedChampionData[mastery[0]?.championId ?? 0]?.name ?? "Unknown"}?`,
-    options: [],
+    options: [] as (string | number)[],
     answer: riotId,
   }
 }
 
-async function mostPlayedChampion({ riotId}: { riotId: string}) {
+async function mostPlayedChampion({ riotId }: { riotId: string }): Promise<QuestionResult> {
   const mastery = await prisma.championMastery.findMany({
     where: { player: { riotId } },
     orderBy: { championPoints: "desc" },
     take: 4,
   });
 
-  const correctAnswer = mastery[0];
-  const options = mastery.map((m) => m.championId);
+  const correctAnswer = typedChampionData[mastery[0]?.championId ?? 0];
+  const options = mastery.map(
+    (m) => typedChampionData[m.championId]?.name ?? "Unknown"
+  );
 
   return {
     question: `Who is ${riotId ?? "this player"}'s most played champion?`,
     options: options,
-    answer: correctAnswer?.championId ?? "Unknown",
+    answer: correctAnswer?.name ?? "Unknown",
   };
 }
 
-async function mostKills({ riotId}: { riotId: string}) {
+async function mostKills({ riotId }: { riotId: string }): Promise<QuestionResult> {
   const player = await prisma.player.findUnique({
     where: { riotId },
     select: {mostKills: true},
@@ -91,7 +103,7 @@ async function mostKills({ riotId}: { riotId: string}) {
   };
 }
 
-async function mostDeaths({ riotId}: { riotId: string }) {
+async function mostDeaths({ riotId }: { riotId: string }): Promise<QuestionResult> {
   const player = await prisma.player.findUnique({
     where: { riotId },
     select: { mostDeaths: true },

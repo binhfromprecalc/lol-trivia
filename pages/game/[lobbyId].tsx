@@ -2,7 +2,6 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import socket from "@utils/socket";
 import "@styles/game.css";
-import championData from '@data/champions.json';
 
 interface Player {
   id: string;
@@ -34,6 +33,8 @@ export default function GamePage() {
   const [locked, setLocked] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [freeAnswer, setFreeAnswer] = useState("");
+  const [submittedFreeAnswer, setSubmittedFreeAnswer] = useState("");
+  const [freeAnswerStatus, setFreeAnswerStatus] = useState<"correct" | "wrong" | null>(null);
   const [results, setResults] = useState<{
     answer: string | number;
     counts: number[];
@@ -43,14 +44,6 @@ export default function GamePage() {
   const [newMessage, setNewMessage] = useState("");
 
   const riotId = localStorage.getItem("riotId");
-
-  const getDisplayText = (text: string | number) => {
-    const key = String(text);
-    if (question?.toLowerCase().includes("champion") && (championData as Record<string, {name: string}>)[key]) {
-      return (championData as Record<string, {name: string}>)[key].name;
-    }
-    return String(text);
-  };
 
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
@@ -72,6 +65,8 @@ export default function GamePage() {
       setTimeLeft(duration);
       setSelected(null);
       setFreeAnswer("");
+      setSubmittedFreeAnswer("");
+      setFreeAnswerStatus(null);
       setResults(null);
       setLocked(false);
     });
@@ -97,7 +92,20 @@ export default function GamePage() {
       socket.off("chat-message");
     };
   }, [lobbyId, riotId]);
-  
+
+  const isFreeResponse =
+    options.length === 0 || options.every((opt) => String(opt).trim() === "");
+
+  const normalizeAnswer = (value: string | number) =>
+    String(value).trim().toLowerCase();
+
+  useEffect(() => {
+    if (!results || !isFreeResponse || !submittedFreeAnswer) return;
+    const isCorrect =
+      normalizeAnswer(submittedFreeAnswer) === normalizeAnswer(results.answer);
+    setFreeAnswerStatus(isCorrect ? "correct" : "wrong");
+  }, [results, isFreeResponse, submittedFreeAnswer]);
+
 
   const submitAnswer = (index: number) => {
     if (locked || selected !== null) return;
@@ -116,6 +124,7 @@ export default function GamePage() {
     const trimmed = freeAnswer.trim();
     if (!trimmed) return;
 
+    setSubmittedFreeAnswer(trimmed);
     setSelected(-1);
     setLocked(true);
 
@@ -144,13 +153,15 @@ export default function GamePage() {
         {question ?? "Waiting for the first question..."}
       </h2>
 
-      {options.length === 0 || options.every((opt) => String(opt).trim() === "") ? (
+      {isFreeResponse ? (
         <div className="answers-grid">
           <input
             value={freeAnswer}
             onChange={(e) => setFreeAnswer(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submitFreeAnswer()}
-            className="chat-input"
+            className={`chat-input free-response-input${
+              freeAnswerStatus ? ` ${freeAnswerStatus}` : ""
+            }`}
             placeholder="Type your answer..."
             disabled={locked}
           />
@@ -183,7 +194,7 @@ export default function GamePage() {
                 onClick={() => submitAnswer(idx)}
                 disabled={locked}
               >
-                {getDisplayText(opt)}
+                {opt}
               </button>
             );
           })}
