@@ -28,6 +28,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   try {
+    await prisma.playerQuestionHistory.deleteMany({
+      where: { playerId: player.id },
+    });
+
     const lobby = await prisma.lobby.create({
       data: {
         code: generateLobbyCode(),

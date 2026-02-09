@@ -1,12 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@lib/prisma';
+import championData from '@data/champions.json';
 
 const questions = [
   leastPlayedChampion,
   mostPlayedChampion,
   mostKills,
   mostDeaths,
+  randomChampionMastery
 ];
+
+const typedChampionData: Record<string, { name: string }> = championData;
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items];
@@ -28,10 +32,27 @@ async function leastPlayedChampion({ riotId}: { riotId: string}) {
   const options = mastery.map((m) => m.championId);
 
   return {
-    question: `Who is ${riotId ?? "this player"}'s **least played champion**?`,
+    question: `Who is ${riotId ?? "this player"}'s least played champion?`,
     options: options,
     answer: correctAnswer?.championId ?? "Unknown",
   };
+}
+
+async function randomChampionMastery({ riotId}: { riotId: string}) { 
+  const count = await prisma.championMastery.count({
+    where: { player: { riotId } },
+  });
+  const randomNum = Math.floor(Math.random() * count);
+  const mastery = await prisma.championMastery.findMany({
+    where: { player: { riotId } },
+    skip: randomNum,
+  });
+
+  return {
+    question: `Which player has ${mastery[0]?.championPoints ?? 0} mastery points on ${typedChampionData[mastery[0]?.championId ?? 0]?.name ?? "Unknown"}?`,
+    options: [],
+    answer: riotId,
+  }
 }
 
 async function mostPlayedChampion({ riotId}: { riotId: string}) {
@@ -45,7 +66,7 @@ async function mostPlayedChampion({ riotId}: { riotId: string}) {
   const options = mastery.map((m) => m.championId);
 
   return {
-    question: `Who is ${riotId ?? "this player"}'s **most played champion**?`,
+    question: `Who is ${riotId ?? "this player"}'s most played champion?`,
     options: options,
     answer: correctAnswer?.championId ?? "Unknown",
   };
@@ -64,7 +85,7 @@ async function mostKills({ riotId}: { riotId: string}) {
     options = [0, 0, 0, 0];
   }
   return {
-    question: `How many kills did ${riotId ?? "player"} get in their **highest-kill game** recently?`,
+    question: `How many kills did ${riotId ?? "player"} get in their highest-kill game recently?`,
     options: options,
     answer: player?.mostKills ?? 0,
   };
@@ -84,7 +105,7 @@ async function mostDeaths({ riotId}: { riotId: string }) {
   }
 
   return {
-    question: `How many deaths did ${riotId ?? "player"} have in their **highest-death game** recently?`,
+    question: `How many deaths did ${riotId ?? "player"} have in their highest-death game recently?`,
     options: options,
     answer: player?.mostDeaths ?? 0,
   };

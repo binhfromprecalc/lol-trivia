@@ -8,7 +8,7 @@ interface ActiveRound {
   question: string;
   options: (string | number)[];
   answer: string | number;
-  answers: Map<string, number>; 
+  answers: Map<string, { index: number; text?: string }>;
   timeLeft: number;
   timer?: NodeJS.Timeout;
 }
@@ -45,7 +45,7 @@ async function startRound(io: Server, lobbyId: string) {
 
   const round: ActiveRound = {
     question: data.question,
-    options: data.options,
+    options: Array.isArray(data.options) ? data.options : [],
     answer: data.answer,
     answers: new Map(),
     timeLeft: 15,
@@ -77,7 +77,9 @@ function endRound(io: Server, lobbyId: string) {
 
   const counts = Array(round.options.length).fill(0);
   for (const ans of round.answers.values()) {
-    counts[ans]++;
+    if (ans.index >= 0 && ans.index < counts.length) {
+      counts[ans.index]++;
+    }
   }
 
   io.to(lobbyId).emit("answer-results", {
@@ -258,7 +260,7 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           });
         }
       });
-        socket.on("submit-answer", async ({ lobbyId, answerIndex }) => {
+        socket.on("submit-answer", async ({ lobbyId, answerIndex, answerText }) => {
           const round = activeGames.get(lobbyId);
           if (!round) return;
 
@@ -266,7 +268,10 @@ const ioHandler = (_: NextApiRequest, res: any) => {
 
           if (round.answers.has(playerKey)) return;
 
-          round.answers.set(playerKey, answerIndex);
+          round.answers.set(playerKey, {
+            index: typeof answerIndex === "number" ? answerIndex : -1,
+            text: typeof answerText === "string" ? answerText.slice(0, 300) : undefined,
+          });
 
           const sockets = await io.in(lobbyId).fetchSockets();
           const expectedPlayers = sockets.length;

@@ -33,6 +33,7 @@ export default function GamePage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [locked, setLocked] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [freeAnswer, setFreeAnswer] = useState("");
   const [results, setResults] = useState<{
     answer: string | number;
     counts: number[];
@@ -67,9 +68,10 @@ export default function GamePage() {
 
     socket.on("new-question", ({ question, options, duration }) => {
       setQuestion(question);
-      setOptions(options);
+      setOptions(Array.isArray(options) ? options : []);
       setTimeLeft(duration);
       setSelected(null);
+      setFreeAnswer("");
       setResults(null);
       setLocked(false);
     });
@@ -109,6 +111,21 @@ export default function GamePage() {
     });
   };
 
+  const submitFreeAnswer = () => {
+    if (locked || selected !== null) return;
+    const trimmed = freeAnswer.trim();
+    if (!trimmed) return;
+
+    setSelected(-1);
+    setLocked(true);
+
+    socket.emit("submit-answer", {
+      lobbyId,
+      answerIndex: -1,
+      answerText: trimmed,
+    });
+  };
+
   const sendMessage = () => {
     if (!newMessage.trim() || !lobbyId) return;
     socket.emit("chat-message", { lobbyId, text: newMessage });
@@ -127,31 +144,51 @@ export default function GamePage() {
         {question ?? "Waiting for the first question..."}
       </h2>
 
-      <div className="answers-grid">
-        {options.map((opt, idx) => {
-          let className = "answer-card";
+      {options.length === 0 || options.every((opt) => String(opt).trim() === "") ? (
+        <div className="answers-grid">
+          <input
+            value={freeAnswer}
+            onChange={(e) => setFreeAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitFreeAnswer()}
+            className="chat-input"
+            placeholder="Type your answer..."
+            disabled={locked}
+          />
+          <button
+            onClick={submitFreeAnswer}
+            className="send-button"
+            disabled={locked || !freeAnswer.trim()}
+          >
+            Submit
+          </button>
+        </div>
+      ) : (
+        <div className="answers-grid">
+          {options.map((opt, idx) => {
+            let className = "answer-card";
 
-          if (results) {
-            if (idx === selected) {
-              if (options[idx] === results.answer) className += " correct";
-              else className += " wrong";
+            if (results) {
+              if (idx === selected) {
+                if (options[idx] === results.answer) className += " correct";
+                else className += " wrong";
+              }
+            } else if (idx === selected) {
+              className += " selected";
             }
-          } else if (idx === selected) {
-            className += " selected";
-          }
 
-          return (
-            <button
-              key={idx}
-              className={className}
-              onClick={() => submitAnswer(idx)}
-              disabled={locked}
-            >
-              {getDisplayText(opt)}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={idx}
+                className={className}
+                onClick={() => submitAnswer(idx)}
+                disabled={locked}
+              >
+                {getDisplayText(opt)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="chat-box">
         <ul className="players-list">

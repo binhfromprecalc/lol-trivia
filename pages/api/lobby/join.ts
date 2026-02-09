@@ -31,6 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    await prisma.playerQuestionHistory.deleteMany({
+      where: { playerId: player.id },
+    });
+
     const updatedLobby = await prisma.lobby.findUnique({
       where: { id: lobby.id },
       include: {
