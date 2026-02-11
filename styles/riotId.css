@@ -334,6 +334,27 @@
   white-space: nowrap;
 }
 
+.player-link {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  margin-right: 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.player-link:hover {
+  color: #ffffff;
+}
+
+.player-link:focus-visible {
+  outline: 2px solid #7bb0ff;
+  outline-offset: 2px;
+}
+
 .team li .kda-stat {
   min-width: 80px;
   text-align: center;

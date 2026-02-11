@@ -18,6 +18,7 @@ export default function RiotProfilePage() {
   const [lobby, setLobby] = useState<{ id: string; players: any[] } | null>(null);
   const [joinLobbyId, setJoinLobbyId] = useState('');
   const [error, setError] = useState('');
+  const [searchRiotId, setSearchRiotId] = useState('');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
 
@@ -135,6 +136,18 @@ export default function RiotProfilePage() {
     }
   };
 
+  const handleSearchProfile = () => {
+    const [name, tag] = searchRiotId.split('#');
+    if (!name || !tag) {
+      setError('Please enter a Riot ID in the format Name#TAG (e.g., Faker#KR)');
+      return;
+    }
+
+    setError('');
+    localStorage.setItem('riotId', searchRiotId);
+    router.push(`/user/${encodeURIComponent(searchRiotId)}`);
+  };
+
   const handleJoinLobby = async () => {
     try {
       if (typeof riotId !== 'string') throw new Error('Invalid Riot ID');
@@ -160,9 +173,30 @@ export default function RiotProfilePage() {
     }
   };
 
+  const handleNavigateToProfile = (targetRiotId: string) => {
+    setShowPopup(false);
+    localStorage.setItem('riotId', targetRiotId);
+    router.push(`/user/${encodeURIComponent(targetRiotId)}`);
+  };
+
   return (
     <>
       <div className="profile-container">
+      <div className="input-group">
+        <input
+          className="input-field"
+          placeholder="Search another Riot ID (e.g. binh#NA1)"
+          value={searchRiotId}
+          onChange={(e) => setSearchRiotId(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearchProfile()}
+        />
+        <button
+          className="button blue"
+          onClick={handleSearchProfile}
+        >
+          Search
+        </button>
+      </div>
       <h1 className="profile-title">Riot Profile for {gameName}#{tagLine}</h1>
       {error && <p className="error-text">{error}</p>}
 
@@ -386,7 +420,14 @@ export default function RiotProfilePage() {
                           />
 
                           <span className="player-info">
-                            {stats.riotId} {stats.champName}
+                            <button
+                              type="button"
+                              className="player-link"
+                              onClick={() => handleNavigateToProfile(stats.riotId)}
+                            >
+                              {stats.riotId}
+                            </button>
+                            {stats.champName}
                           </span>
 
                           <span className="kda-stat">
