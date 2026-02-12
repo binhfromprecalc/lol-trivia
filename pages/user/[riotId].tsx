@@ -19,6 +19,8 @@ export default function RiotProfilePage() {
   const [joinLobbyId, setJoinLobbyId] = useState('');
   const [error, setError] = useState('');
   const [searchRiotId, setSearchRiotId] = useState('');
+  const [queueFilter, setQueueFilter] = useState<'all' | 'ranked'>('all');
+  const [statsView, setStatsView] = useState<'matches' | 'mastery'>('matches');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
 
@@ -91,31 +93,39 @@ export default function RiotProfilePage() {
         if (!rankRes.ok) throw new Error(rankResult.error || 'Error fetching rank info');
         setRankEntries(rankResult);
 
-        const winrateRes = await fetch(`/api/winrate?puuid=${encodeURIComponent(result.puuid)}`);
+        const winrateParams = new URLSearchParams({
+          puuid: result.puuid,
+        });
+        if (queueFilter === 'ranked') {
+          winrateParams.set('queueType', '420');
+        }
+        const winrateRes = await fetch(`/api/winrate?${winrateParams.toString()}`);
         const winrateResult = await winrateRes.json();
         if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
         setWinrateData(winrateResult);
 
-        await fetch("/api/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            account: result,
-            summoner: profileResult,
-            rankedEntries: rankResult,
-            masteries: masteryResult,
-            winrate: winrateResult,
-            gameName: name,
-            tagLine: tag,
-            region: platformRegion,
-          }),
-        });
+        if (queueFilter === 'all') {
+          await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              account: result,
+              summoner: profileResult,
+              rankedEntries: rankResult,
+              masteries: masteryResult,
+              winrate: winrateResult,
+              gameName: name,
+              tagLine: tag,
+              region: platformRegion,
+            }),
+          });
+        }
       } catch (err: any) {
         setError(err.message);
       }
     };
     fetchData();
-  }, [router.isReady, riotId]);
+  }, [router.isReady, riotId, queueFilter]);
 
   const handleCreateLobby = async () => {
     try {
@@ -255,8 +265,25 @@ export default function RiotProfilePage() {
         </div>
       )}
       
+      <div className="stats-view-row">
+        <button
+          type="button"
+          className={`button ${statsView === 'matches' ? 'blue' : 'green'}`}
+          onClick={() => setStatsView('matches')}
+        >
+          Match Stats
+        </button>
+        <button
+          type="button"
+          className={`button ${statsView === 'mastery' ? 'blue' : 'green'}`}
+          onClick={() => setStatsView('mastery')}
+        >
+          Champion Mastery
+        </button>
+      </div>
+
       {/* Ranked Info */}
-      {rankEntries.length > 0 && (
+      {statsView === 'matches' && rankEntries.length > 0 && (
         <div className="section">
           <h3 className="section-title">Ranked Info</h3>
           <ul className="list-box">
@@ -271,10 +298,28 @@ export default function RiotProfilePage() {
       )}
 
       {/* Winrate */}
-      {winrateData && (
+      {statsView === 'matches' && winrateData && (
         <div className="section">
+          <div className="queue-filter-row">
+            <button
+              type="button"
+              className={`button ${queueFilter === 'all' ? 'blue' : 'green'}`}
+              onClick={() => setQueueFilter('all')}
+            >
+              Last 20 Games
+            </button>
+            <button
+              type="button"
+              className={`button ${queueFilter === 'ranked' ? 'blue' : 'green'}`}
+              onClick={() => setQueueFilter('ranked')}
+            >
+              Last 20 Ranked
+            </button>
+          </div>
           <h3 className="section-title">
-            Winrate (Last {winrateData.gamesAnalyzed} Games)
+            Winrate (
+            Last {winrateData.gamesAnalyzed}{' '}
+            {queueFilter === 'ranked' ? 'Ranked Solo/Duo Games' : 'Games'})
           </h3>
           <p>{winrateData.winrate}% — {winrateData.wins}W / {winrateData.losses}L</p>
           <p>Total Kills: {winrateData.totalKills}</p>
@@ -341,7 +386,7 @@ export default function RiotProfilePage() {
       )}
 
       {/* Masteries */}
-      {masteries && Object.keys(masteries).length > 0 && (() => {
+      {statsView === 'mastery' && masteries && Object.keys(masteries).length > 0 && (() => {
         const entries = Object.entries(masteries);
         const [lowestChampId, lowestData] = entries.reduce(
           (minEntry, currEntry) =>

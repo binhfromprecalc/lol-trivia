@@ -42,9 +42,17 @@ export async function getRankedEntriesByPUUID(puuid: string, platformRegion: str
   return res.data;
 }
 
-export async function getWinrateByPUUID(puuid: string) {
+export async function getWinrateByPUUID(puuid: string, queueType?: number) {
+  const query = new URLSearchParams({
+    start: '0',
+    count: '20',
+  });
+  if (typeof queueType === 'number') {
+    query.set('queue', String(queueType));
+  }
+
   const matchIdsRes = await axios.get(
-    `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20`,
+    `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?${query.toString()}`,
     {
       headers: {
         'X-Riot-Token': RIOT_API_KEY || '',
@@ -99,14 +107,18 @@ export async function getWinrateByPUUID(puuid: string) {
     endGameTime: number;
   }> = {};
 
+  let processedMatches = 0;
+
   matches.forEach((match, index) => {
     if (!match) return;
+    if (!match.info || !Array.isArray(match.info.participants)) return;
 
     const participant = match.info.participants.find(
       (p: any) => p.puuid === puuid
     );
 
     if (!participant) return;
+    processedMatches++;
 
     const champName = participant.championName;
     const won = participant.win;
@@ -176,10 +188,10 @@ export async function getWinrateByPUUID(puuid: string) {
   });
 
   return {
-    gamesAnalyzed: matchIds.length,
-    winrate: ((wins / matchIds.length) * 100).toFixed(2),
+    gamesAnalyzed: processedMatches,
+    winrate: (processedMatches > 0 ? (wins / processedMatches) * 100 : 0).toFixed(2),
     wins,
-    losses: matchIds.length - wins,
+    losses: Math.max(processedMatches - wins, 0),
     totalKills,
     totalDeaths,
     mostKills,

@@ -73,6 +73,18 @@
   margin-bottom: 12px;
 }
 
+.queue-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stats-view-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .list-box {
   list-style: none;
   padding: 12px;
