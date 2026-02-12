@@ -23,6 +23,11 @@
   margin: 12px 0;
 }
 
+.empty-text {
+  color: #777;
+  font-style: italic;
+}
+
 .profile-section {
   display: flex;
   justify-content: space-between;

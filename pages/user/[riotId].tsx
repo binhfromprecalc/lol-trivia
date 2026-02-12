@@ -179,6 +179,25 @@ export default function RiotProfilePage() {
     router.push(`/user/${encodeURIComponent(targetRiotId)}`);
   };
 
+  const matchHistoryEntries = Object.entries(winrateData?.matchStats ?? {});
+
+  const formatTimeAgo = (timestamp: number | null | undefined) => {
+    if (!timestamp) return 'time unknown';
+    const diffMs = Date.now() - timestamp;
+    if (diffMs < 60 * 1000) return 'just now';
+    const diffMinutes = Math.floor(diffMs / (60 * 1000));
+    if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes === 1 ? '' : 's'} ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
   return (
     <>
       <div className="profile-container">
@@ -284,12 +303,13 @@ export default function RiotProfilePage() {
           </ul>
 
           <ul className="match-history">
-            {Object.entries(winrateData.matchStats).map(([matchId, stats]: any, idx) => {
+            {matchHistoryEntries.map(([matchId, stats]: any, idx) => {
               const champName = stats.champName;
               const sanitizedChampName = specialCases[champName]
                     || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
               const isWin = stats.win;
               const queueType = queueTypeMap[stats.queueType] || `Unknown Queue, Queue ID: ${stats.queueType}`;
+              const timeAgo = formatTimeAgo(stats.endGameTime);
               return(
                 <li key={idx} className={`match-card ${isWin ? 'win' : 'loss'}`} onClick={() => { setSelectedMatch(stats); setShowPopup(true); }}>
                   <div className="champion-section">
@@ -302,7 +322,7 @@ export default function RiotProfilePage() {
                   </div>
 
                   <div className="stats-section">
-                    <span className="queue-type">{queueType}</span>
+                    <span className="queue-type">{queueType} - {timeAgo}</span>
                     <span className="kda">
                       {stats.kills} / {stats.deaths} / {stats.assists} / CS: {stats.creepScore}
                     </span>
@@ -312,7 +332,10 @@ export default function RiotProfilePage() {
               );
 
           })}
-          
+
+          {matchHistoryEntries.length === 0 && (
+            <li className="empty-text">No match history available right now.</li>
+          )}
           </ul>
         </div>
       )}

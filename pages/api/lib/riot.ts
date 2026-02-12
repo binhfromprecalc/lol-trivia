@@ -96,6 +96,7 @@ export async function getWinrateByPUUID(puuid: string) {
       creepScore: number;
       teamId: number;
     }>;
+    endGameTime: number;
   }> = {};
 
   matches.forEach((match, index) => {
@@ -168,6 +169,7 @@ export async function getWinrateByPUUID(puuid: string) {
       deaths,
       assists: participant.assists,
       creepScore,
+      endGameTime: match.info.gameEndTimestamp,
       win: won,
       participantStats
     };
