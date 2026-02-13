@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import championData from '@data/champions.json';
 import '@styles/riotId.css'; 
 
@@ -23,6 +23,7 @@ export default function RiotProfilePage() {
   const [statsView, setStatsView] = useState<'matches' | 'mastery'>('matches');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const latestRequestRef = useRef(0);
 
   const specialCases: Record<string, string> = {
     "Wukong": "MonkeyKing",
@@ -51,10 +52,15 @@ export default function RiotProfilePage() {
 
   useEffect(() => {
     if (!router.isReady || typeof riotId !== 'string') return;
+    const requestId = ++latestRequestRef.current;
+    const controller = new AbortController();
+    const { signal } = controller;
+    const isStale = () => latestRequestRef.current !== requestId || signal.aborted;
+
     const [name, tag] = riotId.split('#');
     if (!name || !tag) {
       setError('Riot ID must be in the format Name#Tag (e.g. Faker#KR)');
-      return;
+      return () => controller.abort();
     }
 
     const fetchData = async () => {
@@ -65,9 +71,10 @@ export default function RiotProfilePage() {
       setWinrateData(null);
 
       try {
-        const res = await fetch(`/api/account?gameName=${name}&tagLine=${tag}`);
+        const res = await fetch(`/api/account?gameName=${name}&tagLine=${tag}`, { signal });
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Unknown error');
+        if (isStale()) return;
         setData(result);
         setGameName(name);
         setTagLine(tag);
@@ -78,19 +85,22 @@ export default function RiotProfilePage() {
           TR1: 'tr1', LA1: 'la1', LA2: 'la2',
         };
         const platformRegion = regionMap[tag.toUpperCase()] || 'na1';
-        const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`);
+        const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`, { signal });
         const profileResult = await profileRes.json();
         if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
+        if (isStale()) return;
         setProfile(profileResult);
 
-        const masteryRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
+        const masteryRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`, { signal });
         const masteryResult = await masteryRes.json();
         if (!masteryRes.ok) throw new Error(masteryResult.error || 'Error fetching masteries');
+        if (isStale()) return;
         setMasteries(masteryResult);
 
-        const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`);
+        const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`, { signal });
         const rankResult = await rankRes.json();
         if (!rankRes.ok) throw new Error(rankResult.error || 'Error fetching rank info');
+        if (isStale()) return;
         setRankEntries(rankResult);
 
         const winrateParams = new URLSearchParams({
@@ -99,15 +109,17 @@ export default function RiotProfilePage() {
         if (queueFilter === 'ranked') {
           winrateParams.set('queueType', '420');
         }
-        const winrateRes = await fetch(`/api/winrate?${winrateParams.toString()}`);
+        const winrateRes = await fetch(`/api/winrate?${winrateParams.toString()}`, { signal });
         const winrateResult = await winrateRes.json();
         if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
+        if (isStale()) return;
         setWinrateData(winrateResult);
 
         if (queueFilter === 'all') {
           await fetch("/api/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal,
             body: JSON.stringify({
               account: result,
               summoner: profileResult,
@@ -121,10 +133,15 @@ export default function RiotProfilePage() {
           });
         }
       } catch (err: any) {
+        if (err?.name === 'AbortError' || isStale()) return;
         setError(err.message);
       }
     };
     fetchData();
+
+    return () => {
+      controller.abort();
+    };
   }, [router.isReady, riotId, queueFilter]);
 
   const handleCreateLobby = async () => {
@@ -316,6 +333,8 @@ export default function RiotProfilePage() {
               Last 20 Ranked
             </button>
           </div>
+          <div className="matches-layout">
+            <div className="matches-main-panel">
           <h3 className="section-title">
             Winrate (
             Last {winrateData.gamesAnalyzed}{' '}
@@ -326,7 +345,7 @@ export default function RiotProfilePage() {
           <p>Total Deaths: {winrateData.totalDeaths}</p>
           <p>Most Kills in a Game: {winrateData.mostKills}</p>
           <p>Most Deaths in a Game: {winrateData.mostDeaths}</p>
-          <ul className="list-box">
+          <ul className="list-box champion-stats-list">
             {Object.entries(winrateData.championStats).map(([champName, stats]: any, idx) => {
               const winrate = (stats.wins / stats.games) * 100;
               const kda = stats.deaths > 0
@@ -347,7 +366,10 @@ export default function RiotProfilePage() {
             })}
           </ul>
 
-          <ul className="match-history">
+            </div>
+            <div className="matches-history-panel">
+              <h3 className="section-title">Match History</h3>
+              <ul className="match-history">
             {matchHistoryEntries.map(([matchId, stats]: any, idx) => {
               const champName = stats.champName;
               const sanitizedChampName = specialCases[champName]
@@ -381,7 +403,9 @@ export default function RiotProfilePage() {
           {matchHistoryEntries.length === 0 && (
             <li className="empty-text">No match history available right now.</li>
           )}
-          </ul>
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 

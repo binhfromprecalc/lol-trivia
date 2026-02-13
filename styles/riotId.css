@@ -1,5 +1,5 @@
 .profile-container {
-  max-width: 700px;
+  max-width: 1200px;
   margin: 40px auto;
   padding: 20px;
   font-family: Arial, sans-serif;
@@ -67,6 +67,21 @@
   margin-top: 24px;
 }
 
+.matches-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.5fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.champion-stats-list {
+  margin-top: 12px;
+}
+
+.matches-history-panel .match-history {
+  margin-top: 0;
+}
+
 .section-title {
   font-size: 18px;
   font-weight: 600;
@@ -127,7 +142,7 @@
 }
 
 .input-field {
-  flex: 1;
+  flex: 0.5;
   padding: 10px 14px;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -482,4 +497,10 @@
 .star {
   color: #ffff00;
   margin-right: 2px;
+}
+
+@media (max-width: 900px) {
+  .matches-layout {
+    grid-template-columns: 1fr;
+  }
 }

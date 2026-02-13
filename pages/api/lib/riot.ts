@@ -2,6 +2,56 @@ import axios from 'axios';
 
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
 const ACCOUNT_REGION = 'americas';
+const MATCH_DETAILS_CONCURRENCY = 4;
+const MATCH_DETAILS_MAX_RETRIES = 5;
+const BASE_RETRY_DELAY_MS = 250;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(attempt: number) {
+  const jitter = Math.floor(Math.random() * 100);
+  return BASE_RETRY_DELAY_MS * (2 ** (attempt - 1)) + jitter;
+}
+
+async function fetchMatchByIdWithRetry(matchId: string) {
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= MATCH_DETAILS_MAX_RETRIES; attempt++) {
+    try {
+      const res = await axios.get(
+        `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
+        { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
+      );
+      return res.data;
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < MATCH_DETAILS_MAX_RETRIES) {
+        await sleep(retryDelayMs(attempt));
+      }
+    }
+  }
+
+  throw lastError ?? new Error(`Failed to fetch match details for ${matchId}`);
+}
+
+async function fetchMatchesByIds(matchIds: string[]) {
+  const results: any[] = new Array(matchIds.length);
+  let cursor = 0;
+
+  const workers = Array.from({ length: Math.min(MATCH_DETAILS_CONCURRENCY, matchIds.length) }, async () => {
+    while (true) {
+      const index = cursor;
+      cursor++;
+      if (index >= matchIds.length) break;
+      results[index] = await fetchMatchByIdWithRetry(matchIds[index]);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
 
 export async function getAccountByRiotId(gameName: string, tagLine: string) {
   const res = await axios.get(
@@ -62,15 +112,7 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
 
   const matchIds: string[] = matchIdsRes.data;
 
-  const matchRequests = matchIds.map(id =>
-    axios.get(
-      `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/${id}`,
-      { headers: { "X-Riot-Token": RIOT_API_KEY! } }
-    ).then(res => res.data)
-     .catch(() => null)
-  );
-
-  const matches = await Promise.all(matchRequests);
+  const matches = await fetchMatchesByIds(matchIds);
 
   let wins = 0;
   let totalDeaths = 0;
@@ -88,7 +130,7 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
   }> = {};
 
   const matchStats: Record<string, {
-    queueType: string;
+    queueType: number;
     champName: string;
     kills: number;
     deaths: number;
@@ -110,7 +152,6 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
   let processedMatches = 0;
 
   matches.forEach((match, index) => {
-    if (!match) return;
     if (!match.info || !Array.isArray(match.info.participants)) return;
 
     const participant = match.info.participants.find(
@@ -186,6 +227,10 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
       participantStats
     };
   });
+
+  if (processedMatches !== matchIds.length) {
+    throw new Error(`Incomplete match data: expected ${matchIds.length}, processed ${processedMatches}`);
+  }
 
   return {
     gamesAnalyzed: processedMatches,
