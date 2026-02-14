@@ -80,6 +80,13 @@ export default function GamePage() {
       setLocked(true);
     });
 
+    socket.on("game-over", ({ message }) => {
+      setQuestion(message || "Game over.");
+      setOptions([]);
+      setTimeLeft(0);
+      setLocked(true);
+    });
+
     socket.on("chat-message", (msg: ChatMessage) => {
       setMessages((prev) => [...prev, msg]);
     });
@@ -89,6 +96,7 @@ export default function GamePage() {
       socket.off("new-question");
       socket.off("timer");
       socket.off("answer-results");
+      socket.off("game-over");
       socket.off("chat-message");
     };
   }, [lobbyId, riotId]);

@@ -25,6 +25,7 @@
       "@styles/*": ["./styles/*"],
       "@data/*": ["./pages/data/*"],
       "@utils/*": ["./pages/utils/*"],
+      "@game/*": ["./pages/api/game/*"],
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
