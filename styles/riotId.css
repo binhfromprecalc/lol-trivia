@@ -29,6 +29,7 @@
 }
 
 .profile-section {
+  background: #9cbbf9;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -76,6 +77,13 @@
 
 .champion-stats-list {
   margin-top: 12px;
+}
+
+.matches-main-panel {
+  background: #9cbbf9;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 20px;
 }
 
 .matches-history-panel .match-history {
