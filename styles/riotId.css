@@ -1,6 +1,6 @@
 .profile-container {
-  max-width: 1200px;
-  margin: 40px auto;
+  color: #e1e1e1;
+  background: #525b6d;
   padding: 20px;
   font-family: Arial, sans-serif;
 }
@@ -29,7 +29,7 @@
 }
 
 .profile-section {
-  background: #9cbbf9;
+  background: #333d52;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -80,7 +80,7 @@
 }
 
 .matches-main-panel {
-  background: #9cbbf9;
+  background: #333d52;
   border: 1px solid #3a3a3a;
   border-radius: 10px;
   padding: 20px;
