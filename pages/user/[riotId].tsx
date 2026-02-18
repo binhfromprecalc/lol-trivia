@@ -23,7 +23,13 @@ export default function RiotProfilePage() {
   const [statsView, setStatsView] = useState<'matches' | 'mastery'>('matches');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [showPopup, setShowPopup] = useState(false);
-  const latestRequestRef = useRef(0);
+  const [puuid, setPuuid] = useState('');
+  const [platformRegion, setPlatformRegion] = useState('na1');
+  const [isBaseLoading, setIsBaseLoading] = useState(false);
+  const [isWinrateLoading, setIsWinrateLoading] = useState(false);
+  const baseRequestRef = useRef(0);
+  const winrateRequestRef = useRef(0);
+  const lastSyncedKeyRef = useRef('');
 
   const specialCases: Record<string, string> = {
     "Wukong": "MonkeyKing",
@@ -52,10 +58,10 @@ export default function RiotProfilePage() {
 
   useEffect(() => {
     if (!router.isReady || typeof riotId !== 'string') return;
-    const requestId = ++latestRequestRef.current;
+    const requestId = ++baseRequestRef.current;
     const controller = new AbortController();
     const { signal } = controller;
-    const isStale = () => latestRequestRef.current !== requestId || signal.aborted;
+    const isStale = () => baseRequestRef.current !== requestId || signal.aborted;
 
     const [name, tag] = riotId.split('#');
     if (!name || !tag) {
@@ -63,86 +69,148 @@ export default function RiotProfilePage() {
       return () => controller.abort();
     }
 
-    const fetchData = async () => {
+    const fetchBaseData = async () => {
       setError('');
+      setIsBaseLoading(true);
+      setIsWinrateLoading(true);
       setData(null);
+      setProfile(null);
       setMasteries([]);
       setRankEntries([]);
       setWinrateData(null);
+      setPuuid('');
+      setGameName(name);
+      setTagLine(tag);
 
       try {
-        const res = await fetch(`/api/account?gameName=${name}&tagLine=${tag}`, { signal });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Unknown error');
+        const accountRes = await fetch(
+          `/api/account?gameName=${encodeURIComponent(name)}&tagLine=${encodeURIComponent(tag)}`,
+          { signal }
+        );
+        const accountResult = await accountRes.json();
+        if (!accountRes.ok) throw new Error(accountResult.error || 'Unknown error');
         if (isStale()) return;
-        setData(result);
-        setGameName(name);
-        setTagLine(tag);
 
         const regionMap: Record<string, string> = {
           NA1: 'na1', EUW1: 'euw1', KR: 'kr', EUN1: 'eun1',
           JP1: 'jp1', BR1: 'br1', OC1: 'oc1', RU: 'ru',
           TR1: 'tr1', LA1: 'la1', LA2: 'la2',
         };
-        const platformRegion = regionMap[tag.toUpperCase()] || 'na1';
-        const profileRes = await fetch(`/api/summoner?puuid=${encodeURIComponent(result.puuid)}`, { signal });
-        const profileResult = await profileRes.json();
+        const mappedPlatformRegion = regionMap[tag.toUpperCase()] || 'na1';
+        setPlatformRegion(mappedPlatformRegion);
+        setPuuid(accountResult.puuid);
+
+        const [profileRes, masteryRes, rankRes] = await Promise.all([
+          fetch(`/api/summoner?puuid=${encodeURIComponent(accountResult.puuid)}`, { signal }),
+          fetch(
+            `/api/masteries?puuid=${encodeURIComponent(accountResult.puuid)}&platformRegion=${mappedPlatformRegion}`,
+            { signal }
+          ),
+          fetch(
+            `/api/rank?puuid=${encodeURIComponent(accountResult.puuid)}&platformRegion=${mappedPlatformRegion}`,
+            { signal }
+          ),
+        ]);
+
+        const [profileResult, masteryResult, rankResult] = await Promise.all([
+          profileRes.json(),
+          masteryRes.json(),
+          rankRes.json(),
+        ]);
+
         if (!profileRes.ok) throw new Error(profileResult.error || 'Error fetching icon');
-        if (isStale()) return;
-        setProfile(profileResult);
-
-        const masteryRes = await fetch(`/api/masteries?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`, { signal });
-        const masteryResult = await masteryRes.json();
         if (!masteryRes.ok) throw new Error(masteryResult.error || 'Error fetching masteries');
-        if (isStale()) return;
-        setMasteries(masteryResult);
-
-        const rankRes = await fetch(`/api/rank?puuid=${encodeURIComponent(result.puuid)}&platformRegion=${platformRegion}`, { signal });
-        const rankResult = await rankRes.json();
         if (!rankRes.ok) throw new Error(rankResult.error || 'Error fetching rank info');
         if (isStale()) return;
+
+        setData(accountResult);
+        setProfile(profileResult);
+        setMasteries(masteryResult);
         setRankEntries(rankResult);
-
-        const winrateParams = new URLSearchParams({
-          puuid: result.puuid,
-        });
-        if (queueFilter === 'ranked') {
-          winrateParams.set('queueType', '420');
-        }
-        const winrateRes = await fetch(`/api/winrate?${winrateParams.toString()}`, { signal });
-        const winrateResult = await winrateRes.json();
-        if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
-        if (isStale()) return;
-        setWinrateData(winrateResult);
-
-        if (queueFilter === 'all') {
-          await fetch("/api/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            signal,
-            body: JSON.stringify({
-              account: result,
-              summoner: profileResult,
-              rankedEntries: rankResult,
-              masteries: masteryResult,
-              winrate: winrateResult,
-              gameName: name,
-              tagLine: tag,
-              region: platformRegion,
-            }),
-          });
-        }
       } catch (err: any) {
         if (err?.name === 'AbortError' || isStale()) return;
         setError(err.message);
+        setIsWinrateLoading(false);
+      } finally {
+        if (!isStale()) {
+          setIsBaseLoading(false);
+        }
       }
     };
-    fetchData();
+
+    fetchBaseData();
 
     return () => {
       controller.abort();
     };
-  }, [router.isReady, riotId, queueFilter]);
+  }, [router.isReady, riotId]);
+
+  useEffect(() => {
+    if (!puuid || typeof riotId !== 'string') return;
+    const requestId = ++winrateRequestRef.current;
+    const controller = new AbortController();
+    const { signal } = controller;
+    const isStale = () => winrateRequestRef.current !== requestId || signal.aborted;
+
+    const fetchWinrateData = async () => {
+      setIsWinrateLoading(true);
+      setError('');
+      try {
+        const winrateParams = new URLSearchParams({ puuid });
+        if (queueFilter === 'ranked') {
+          winrateParams.set('queueType', '420');
+        }
+
+        const winrateRes = await fetch(`/api/winrate?${winrateParams.toString()}`, { signal });
+        const winrateResult = await winrateRes.json();
+        if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
+        if (isStale()) return;
+
+        setWinrateData(winrateResult);
+
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || isStale()) return;
+        setError(err.message);
+      } finally {
+        if (!isStale()) {
+          setIsWinrateLoading(false);
+        }
+      }
+    };
+
+    fetchWinrateData();
+
+    return () => {
+      controller.abort();
+    };
+  }, [puuid, queueFilter, riotId]);
+
+  useEffect(() => {
+    if (queueFilter !== 'all') return;
+    if (!data || !profile || !winrateData || typeof riotId !== 'string') return;
+
+    const syncKey = `${riotId}|${winrateData.gamesAnalyzed}|${winrateData.winrate}`;
+    if (lastSyncedKeyRef.current === syncKey) return;
+    lastSyncedKeyRef.current = syncKey;
+
+    const [name, tag] = riotId.split('#');
+    if (!name || !tag) return;
+
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        account: data,
+        summoner: profile,
+        rankedEntries: rankEntries,
+        masteries,
+        winrate: winrateData,
+        gameName: name,
+        tagLine: tag,
+        platformRegion,
+      }),
+    }).catch(() => {});
+  }, [queueFilter, data, profile, rankEntries, masteries, winrateData, riotId, platformRegion]);
 
   const handleCreateLobby = async () => {
     try {
@@ -225,6 +293,8 @@ export default function RiotProfilePage() {
     });
   };
 
+  const isProfileLoading = isBaseLoading || isWinrateLoading;
+
   return (
     <>
       <div className="profile-container">
@@ -245,8 +315,11 @@ export default function RiotProfilePage() {
       </div>
       <h1 className="profile-title">Riot Profile for {gameName}#{tagLine}</h1>
       {error && <p className="error-text">{error}</p>}
+      {isProfileLoading && (
+        <p className="empty-text">Loading profile, match history, and mastery data...</p>
+      )}
 
-      {data && profile && (
+      {!isProfileLoading && data && profile && (
         <div className="profile-section">
           <div className="profile-info">
             <img
@@ -300,7 +373,7 @@ export default function RiotProfilePage() {
       </div>
 
       {/* Ranked Info */}
-      {statsView === 'matches' && rankEntries.length > 0 && (
+      {!isProfileLoading && statsView === 'matches' && rankEntries.length > 0 && (
         <div className="section">
           <h3 className="section-title">Ranked Info</h3>
           <ul className="list-box">
@@ -315,7 +388,7 @@ export default function RiotProfilePage() {
       )}
 
       {/* Winrate */}
-      {statsView === 'matches' && winrateData && (
+      {!isProfileLoading && statsView === 'matches' && winrateData && (
         <div className="section">
           <div className="queue-filter-row">
             <button
@@ -410,7 +483,7 @@ export default function RiotProfilePage() {
       )}
 
       {/* Masteries */}
-      {statsView === 'mastery' && masteries && Object.keys(masteries).length > 0 && (() => {
+      {!isProfileLoading && statsView === 'mastery' && masteries && Object.keys(masteries).length > 0 && (() => {
         const entries = Object.entries(masteries);
         const [lowestChampId, lowestData] = entries.reduce(
           (minEntry, currEntry) =>

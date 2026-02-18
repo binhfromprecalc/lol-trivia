@@ -9,7 +9,7 @@ interface ActiveRound {
   question: string;
   options: (string | number)[];
   answer: string | number;
-  answers: Map<string, { index: number; text?: string }>;
+  answers: Map<string, { index: number; text?: string; playerName: string; submittedAt: number }>;
   timeLeft: number;
   timer?: NodeJS.Timeout;
 }
@@ -22,6 +22,22 @@ interface LobbyQuestionProgress {
 
 const activeGames = new Map<string, ActiveRound>();
 const lobbyQuestionProgress = new Map<string, LobbyQuestionProgress>();
+const lobbyScores = new Map<string, Map<string, number>>();
+
+function normalizeAnswer(value: string | number | undefined) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function getLobbyScoreMap(lobbyId: string) {
+  let scores = lobbyScores.get(lobbyId);
+  if (!scores) {
+    scores = new Map<string, number>();
+    lobbyScores.set(lobbyId, scores);
+  }
+  return scores;
+}
 
 function clearActiveRound(lobbyId: string) {
   const activeRound = activeGames.get(lobbyId);
@@ -34,6 +50,7 @@ function clearActiveRound(lobbyId: string) {
 function endLobbyGame(io: Server, lobbyId: string, message: string) {
   clearActiveRound(lobbyId);
   lobbyQuestionProgress.delete(lobbyId);
+  lobbyScores.delete(lobbyId);
 
   io.to(lobbyId).emit('game-over', { message });
   io.to(lobbyId).emit('chat-message', {
@@ -111,6 +128,7 @@ async function startRound(io: Server, lobbyId: string) {
     question: round.question,
     options: round.options,
     duration: round.timeLeft,
+    scores: Object.fromEntries(getLobbyScoreMap(lobbyId).entries()),
   });
 
   round.timer = setInterval(() => {
@@ -136,9 +154,34 @@ function endRound(io: Server, lobbyId: string) {
     }
   }
 
+  const scoreMap = getLobbyScoreMap(lobbyId);
+  const bonusByRank = [5, 3, 2, 1];
+  const basePoints = 10;
+  const pointDeltas: Record<string, number> = {};
+
+  const correctAnswers = Array.from(round.answers.values())
+    .filter((submission) => {
+      if (submission.index >= 0 && submission.index < round.options.length) {
+        return normalizeAnswer(round.options[submission.index]) === normalizeAnswer(round.answer);
+      }
+
+      return normalizeAnswer(submission.text) === normalizeAnswer(round.answer);
+    })
+    .sort((a, b) => a.submittedAt - b.submittedAt);
+
+  correctAnswers.forEach((submission, idx) => {
+    const bonus = bonusByRank[idx] ?? 0;
+    const gained = basePoints + bonus;
+    const current = scoreMap.get(submission.playerName) ?? 0;
+    scoreMap.set(submission.playerName, current + gained);
+    pointDeltas[submission.playerName] = (pointDeltas[submission.playerName] ?? 0) + gained;
+  });
+
   io.to(lobbyId).emit('answer-results', {
     answer: round.answer,
     counts,
+    pointDeltas,
+    scores: Object.fromEntries(scoreMap.entries()),
   });
 
   activeGames.delete(lobbyId);
@@ -191,6 +234,7 @@ const ioHandler = (_: NextApiRequest, res: any) => {
         if (!lobby || lobby.players.length === 0) {
           clearActiveRound(lobbyId);
           lobbyQuestionProgress.delete(lobbyId);
+          lobbyScores.delete(lobbyId);
         }
 
         socket.leave(lobbyId);
@@ -236,6 +280,11 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           system: true,
           timestamp: Date.now(),
         });
+
+        const lobbyScoreMap = getLobbyScoreMap(lobbyId);
+        if (!lobbyScoreMap.has(player.riotId)) {
+          lobbyScoreMap.set(player.riotId, 0);
+        }
       });
 
       socket.on('chat-message', ({ lobbyId, text }) => {
@@ -309,6 +358,12 @@ const ioHandler = (_: NextApiRequest, res: any) => {
             maxRounds: MAX_QUESTIONS_PER_LOBBY,
           });
 
+          const scoreMap = new Map<string, number>();
+          for (const player of lobby.players) {
+            scoreMap.set(player.riotId, 0);
+          }
+          lobbyScores.set(lobbyId, scoreMap);
+
           console.log('All players synced successfully!');
           io.to(lobbyId).emit('start-game', { lobbyId });
           startRound(io, lobbyId);
@@ -328,12 +383,16 @@ const ioHandler = (_: NextApiRequest, res: any) => {
         if (!round) return;
 
         const playerKey = socket.id;
+        const playerName = socket.data.playerName as string | undefined;
+        if (!playerName) return;
 
         if (round.answers.has(playerKey)) return;
 
         round.answers.set(playerKey, {
           index: typeof answerIndex === 'number' ? answerIndex : -1,
           text: typeof answerText === 'string' ? answerText.slice(0, 300) : undefined,
+          playerName,
+          submittedAt: Date.now(),
         });
 
         const sockets = await io.in(lobbyId).fetchSockets();

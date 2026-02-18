@@ -24,6 +24,13 @@ interface ChatMessage {
   system?: boolean;
 }
 
+interface AnswerResultsPayload {
+  answer: string | number;
+  counts: number[];
+  pointDeltas?: Record<string, number>;
+  scores?: Record<string, number>;
+}
+
 export default function GamePage() {
   const { lobbyId } = useRouter().query;
   const [players, setPlayers] = useState<Player[]>([]);
@@ -39,6 +46,9 @@ export default function GamePage() {
     answer: string | number;
     counts: number[];
   } | null>(null);
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [pointDeltas, setPointDeltas] = useState<Record<string, number>>({});
+  const [pointDeltaToken, setPointDeltaToken] = useState(0);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -50,16 +60,34 @@ export default function GamePage() {
 
     fetch(`/api/lobby/${lobbyId}`)
       .then((res) => res.json())
-      .then((data) => data.players && setPlayers(data.players))
+      .then((data) => {
+        if (!data.players) return;
+        setPlayers(data.players);
+        setScores((prev) => {
+          const next = { ...prev };
+          for (const player of data.players) {
+            if (next[player.riotId] === undefined) next[player.riotId] = 0;
+          }
+          return next;
+        });
+      })
       .catch(console.error);
 
     if (riotId) socket.emit("join-lobby", { lobbyId, playerName: riotId });
 
     socket.on("lobby-state", ({ lobby }) => {
-      if (lobby.players) setPlayers(lobby.players);
+      if (!lobby.players) return;
+      setPlayers(lobby.players);
+      setScores((prev) => {
+        const next = { ...prev };
+        for (const player of lobby.players) {
+          if (next[player.riotId] === undefined) next[player.riotId] = 0;
+        }
+        return next;
+      });
     });
 
-    socket.on("new-question", ({ question, options, duration }) => {
+    socket.on("new-question", ({ question, options, duration, scores }) => {
       setQuestion(question);
       setOptions(Array.isArray(options) ? options : []);
       setTimeLeft(duration);
@@ -69,15 +97,26 @@ export default function GamePage() {
       setFreeAnswerStatus(null);
       setResults(null);
       setLocked(false);
+      if (scores && typeof scores === "object") {
+        setScores(scores);
+      }
     });
 
     socket.on("timer", ({ timeLeft }) => {
       setTimeLeft(timeLeft);
     });
 
-    socket.on("answer-results", (data) => {
+    socket.on("answer-results", (data: AnswerResultsPayload) => {
       setResults(data);
       setLocked(true);
+      if (data.scores) {
+        setScores(data.scores);
+      }
+      if (data.pointDeltas) {
+        setPointDeltas(data.pointDeltas);
+        setPointDeltaToken((prev) => prev + 1);
+        setTimeout(() => setPointDeltas({}), 1400);
+      }
     });
 
     socket.on("game-over", ({ message }) => {
@@ -153,93 +192,110 @@ export default function GamePage() {
 
   return (
     <div className="game-container">
-      <div className="top-bar">
-        <div className="timer">{timeLeft}s</div>
+      <div className="left-rail">
+        <div className="players-panel">
+          <h3 className="section-title">Players</h3>
+          <ul className="players-list game-players-list">
+            {players.map((p) => (
+              <li key={p.riotId} className="player-row">
+                <img
+                  src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${p.profileIconId}.png`}
+                  className="profile-icon"
+                />
+                <span className="player-identity">{p.gameName}#{p.tagLine}</span>
+                <span className="player-points">{scores[p.riotId] ?? 0} pts</span>
+                {pointDeltas[p.riotId] ? (
+                  <span
+                    key={`${p.riotId}-${pointDeltaToken}`}
+                    className="point-delta"
+                  >
+                    +{pointDeltas[p.riotId]}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="chat-box">
+          <h3 className="section-title">Chat</h3>
+          <div className="chat-messages">
+            {messages.map((m, idx) => (
+              <div key={idx} className="chat-message">
+                <span className="chat-player">{m.player}: </span>
+                {m.text}
+              </div>
+            ))}
+          </div>
+
+          <div className="chat-input-container">
+            <input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              className="chat-input"
+            />
+            <button onClick={sendMessage} className="send-button">Send</button>
+          </div>
+        </div>
       </div>
 
-      <h2 className="question-text">
-        {question ?? "Waiting for the first question..."}
-      </h2>
-
-      {isFreeResponse ? (
-        <div className="answers-grid">
-          <input
-            value={freeAnswer}
-            onChange={(e) => setFreeAnswer(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitFreeAnswer()}
-            className={`chat-input free-response-input${
-              freeAnswerStatus ? ` ${freeAnswerStatus}` : ""
-            }`}
-            placeholder="Type your answer..."
-            disabled={locked}
-          />
-          <button
-            onClick={submitFreeAnswer}
-            className="send-button"
-            disabled={locked || !freeAnswer.trim()}
-          >
-            Submit
-          </button>
+      <div className="game-main">
+        <div className="top-bar">
+          <div className="timer">{timeLeft}s</div>
         </div>
-      ) : (
-        <div className="answers-grid">
-          {options.map((opt, idx) => {
-            let className = "answer-card";
 
-            if (results) {
-              if (idx === selected) {
-                if (options[idx] === results.answer) className += " correct";
-                else className += " wrong";
+        <h2 className="question-text">
+          {question ?? "Waiting for the first question..."}
+        </h2>
+
+        {isFreeResponse ? (
+          <div className="answers-grid">
+            <input
+              value={freeAnswer}
+              onChange={(e) => setFreeAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitFreeAnswer()}
+              className={`chat-input free-response-input${
+                freeAnswerStatus ? ` ${freeAnswerStatus}` : ""
+              }`}
+              placeholder="Type your answer..."
+              disabled={locked}
+            />
+            <button
+              onClick={submitFreeAnswer}
+              className="send-button"
+              disabled={locked || !freeAnswer.trim()}
+            >
+              Submit
+            </button>
+          </div>
+        ) : (
+          <div className="answers-grid">
+            {options.map((opt, idx) => {
+              let className = "answer-card";
+
+              if (results) {
+                if (idx === selected) {
+                  if (options[idx] === results.answer) className += " correct";
+                  else className += " wrong";
+                }
+              } else if (idx === selected) {
+                className += " selected";
               }
-            } else if (idx === selected) {
-              className += " selected";
-            }
 
-            return (
-              <button
-                key={idx}
-                className={className}
-                onClick={() => submitAnswer(idx)}
-                disabled={locked}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="chat-box">
-        <ul className="players-list">
-          {players.map((p) => (
-            <li key={p.riotId} className="profile-name">
-              <img
-                src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${p.profileIconId}.png`}
-                className="profile-icon"
-              />
-              {p.gameName}#{p.tagLine}
-            </li>
-          ))}
-        </ul>
-
-        <div className="chat-messages">
-          {messages.map((m, idx) => (
-            <div key={idx} className="chat-message">
-              <span className="chat-player">{m.player}: </span>
-              {m.text}
-            </div>
-          ))}
-        </div>
-
-        <div className="chat-input-container">
-          <input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            className="chat-input"
-          />
-          <button onClick={sendMessage} className="send-button">Send</button>
-        </div>
+              return (
+                <button
+                  key={idx}
+                  className={className}
+                  onClick={() => submitAnswer(idx)}
+                  disabled={locked}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
