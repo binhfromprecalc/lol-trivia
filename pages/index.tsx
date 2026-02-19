@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import socket from '@utils/socket';
+import socket, { setSocketRiotId } from '@utils/socket';
 import '@styles/index.css'; 
 
 export default function Home() {
@@ -29,7 +29,7 @@ export default function Home() {
       return;
     }
 
-    localStorage.setItem('riotId', riotId);
+    setSocketRiotId(riotId);
     router.push(`/user/${encodeURIComponent(riotId)}`);
   };
 

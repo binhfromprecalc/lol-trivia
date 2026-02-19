@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import socket from "@utils/socket";
+import socket, { getSocketRiotId } from "@utils/socket";
 import "@styles/game.css";
 
 interface Player {
@@ -31,6 +31,18 @@ interface AnswerResultsPayload {
   scores?: Record<string, number>;
 }
 
+interface FinalStanding {
+  riotId: string;
+  points: number;
+  placement: number;
+}
+
+interface GameOverPayload {
+  message?: string;
+  standings?: FinalStanding[];
+  scores?: Record<string, number>;
+}
+
 export default function GamePage() {
   const { lobbyId } = useRouter().query;
   const [players, setPlayers] = useState<Player[]>([]);
@@ -49,11 +61,14 @@ export default function GamePage() {
   const [scores, setScores] = useState<Record<string, number>>({});
   const [pointDeltas, setPointDeltas] = useState<Record<string, number>>({});
   const [pointDeltaToken, setPointDeltaToken] = useState(0);
+  const [gameFinished, setGameFinished] = useState(false);
+  const [gameOverMessage, setGameOverMessage] = useState<string>("");
+  const [finalStandings, setFinalStandings] = useState<FinalStanding[]>([]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
 
-  const riotId = localStorage.getItem("riotId");
+  const riotId = getSocketRiotId();
 
   useEffect(() => {
     if (!lobbyId || typeof lobbyId !== "string") return;
@@ -73,7 +88,7 @@ export default function GamePage() {
       })
       .catch(console.error);
 
-    if (riotId) socket.emit("join-lobby", { lobbyId, playerName: riotId });
+    if (riotId) socket.emit("join-lobby", { lobbyId });
 
     socket.on("lobby-state", ({ lobby }) => {
       if (!lobby.players) return;
@@ -97,6 +112,8 @@ export default function GamePage() {
       setFreeAnswerStatus(null);
       setResults(null);
       setLocked(false);
+      setGameFinished(false);
+      setGameOverMessage("");
       if (scores && typeof scores === "object") {
         setScores(scores);
       }
@@ -119,8 +136,23 @@ export default function GamePage() {
       }
     });
 
-    socket.on("game-over", ({ message }) => {
-      setQuestion(message || "Game over.");
+    socket.on("game-over", (data: GameOverPayload) => {
+      setGameFinished(true);
+      setGameOverMessage(data.message ?? "");
+      if (data.standings && Array.isArray(data.standings)) {
+        setFinalStandings(data.standings.slice(0, 3));
+      } else {
+        const fallbackStandings = Object.entries(data.scores ?? scores)
+          .map(([riotId, points]) => ({ riotId, points, placement: 0 }))
+          .sort((a, b) => b.points - a.points)
+          .slice(0, 3)
+          .map((entry, index) => ({ ...entry, placement: index + 1 }));
+        setFinalStandings(fallbackStandings);
+      }
+      if (data.scores) {
+        setScores(data.scores);
+      }
+      setPointDeltas({});
       setOptions([]);
       setTimeLeft(0);
       setLocked(true);
@@ -190,6 +222,22 @@ export default function GamePage() {
 
   if (!lobbyId) return <p>Loading game...</p>;
 
+  const playersByRiotId = players.reduce<Record<string, Player>>((acc, player) => {
+    acc[player.riotId] = player;
+    return acc;
+  }, {});
+
+  const podiumPlaces = [2, 1, 3]
+    .map((placement) => finalStandings.find((entry) => entry.placement === placement))
+    .filter((entry): entry is FinalStanding => Boolean(entry));
+
+  const getPlacementLabel = (placement: number) => {
+    if (placement === 1) return "1st";
+    if (placement === 2) return "2nd";
+    if (placement === 3) return "3rd";
+    return `${placement}th`;
+  };
+
   return (
     <div className="game-container">
       <div className="left-rail">
@@ -246,10 +294,38 @@ export default function GamePage() {
         </div>
 
         <h2 className="question-text">
-          {question ?? "Waiting for the first question..."}
+          {gameFinished ? "Final Podium" : question ?? "Waiting for the first question..."}
         </h2>
 
-        {isFreeResponse ? (
+        {gameFinished ? (
+          <div className="podium-panel">
+            {gameOverMessage ? <p className="podium-message">{gameOverMessage}</p> : null}
+            <div className="podium-grid">
+              {podiumPlaces.map((entry) => {
+                const player = playersByRiotId[entry.riotId];
+                const medalClass =
+                  entry.placement === 1 ? "gold" : entry.placement === 2 ? "silver" : "bronze";
+                return (
+                  <div
+                    key={entry.riotId}
+                    className={`podium-card ${medalClass} place-${entry.placement}`}
+                  >
+                    <div className="podium-rank">{getPlacementLabel(entry.placement)}</div>
+                    {player?.profileIconId ? (
+                      <img
+                        src={`https://ddragon.leagueoflegends.com/cdn/15.15.1/img/profileicon/${player.profileIconId}.png`}
+                        className="profile-icon podium-icon"
+                        alt={entry.riotId}
+                      />
+                    ) : null}
+                    <div className="podium-name">{entry.riotId}</div>
+                    <div className="podium-points">{entry.points} pts</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : isFreeResponse ? (
           <div className="answers-grid">
             <input
               value={freeAnswer}

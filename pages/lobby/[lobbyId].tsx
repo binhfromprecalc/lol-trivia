@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import socket from "@utils/socket";
+import socket, { getSocketRiotId } from "@utils/socket";
 import "@styles/lobby.css";
 
 interface ChatMessage {
@@ -40,11 +40,11 @@ export default function LobbyPage() {
 
     let joinedViaSocket = false;
 
-    const riotId = localStorage.getItem("riotId");
+    const riotId = getSocketRiotId();
     if (!riotId) return;
     setPlayerName(riotId);
 
-    socket.emit("join-lobby", { lobbyId, playerName: riotId });
+    socket.emit("join-lobby", { lobbyId });
     joinedViaSocket = true;
 
     fetch(`/api/lobby/${lobbyId}`)

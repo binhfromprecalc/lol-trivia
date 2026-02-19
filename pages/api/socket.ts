@@ -20,6 +20,12 @@ interface LobbyQuestionProgress {
   maxRounds: number;
 }
 
+interface FinalStanding {
+  riotId: string;
+  points: number;
+  placement: number;
+}
+
 const activeGames = new Map<string, ActiveRound>();
 const lobbyQuestionProgress = new Map<string, LobbyQuestionProgress>();
 const lobbyScores = new Map<string, Map<string, number>>();
@@ -48,17 +54,34 @@ function clearActiveRound(lobbyId: string) {
 }
 
 function endLobbyGame(io: Server, lobbyId: string, message: string) {
+  const finalScoreMap = lobbyScores.get(lobbyId) ?? new Map<string, number>();
+  const finalStandings: FinalStanding[] = Array.from(finalScoreMap.entries())
+    .map(([riotId, points]) => ({ riotId, points }))
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      return a.riotId.localeCompare(b.riotId);
+    })
+    .map((entry, index) => ({
+      ...entry,
+      placement: index + 1,
+    }));
+
   clearActiveRound(lobbyId);
   lobbyQuestionProgress.delete(lobbyId);
-  lobbyScores.delete(lobbyId);
 
-  io.to(lobbyId).emit('game-over', { message });
+  io.to(lobbyId).emit('game-over', {
+    message,
+    standings: finalStandings,
+    scores: Object.fromEntries(finalScoreMap.entries()),
+  });
   io.to(lobbyId).emit('chat-message', {
     player: 'SYSTEM',
     text: message,
     system: true,
     timestamp: Date.now(),
   });
+
+  lobbyScores.delete(lobbyId);
 }
 
 async function startRound(io: Server, lobbyId: string) {
@@ -79,7 +102,7 @@ async function startRound(io: Server, lobbyId: string) {
   }
 
   if (progress.roundsAsked >= progress.maxRounds) {
-    endLobbyGame(io, lobbyId, 'Question set complete. Game over.');
+    endLobbyGame(io, lobbyId, 'Question set complete.');
     return;
   }
 
@@ -188,7 +211,7 @@ function endRound(io: Server, lobbyId: string) {
 
   const progress = lobbyQuestionProgress.get(lobbyId);
   if (progress && progress.roundsAsked >= progress.maxRounds) {
-    endLobbyGame(io, lobbyId, 'Question set complete. Game over.');
+    endLobbyGame(io, lobbyId, 'Question set complete.');
     return;
   }
 
@@ -246,15 +269,30 @@ const ioHandler = (_: NextApiRequest, res: any) => {
     }
 
     io.on('connection', (socket) => {
-      console.log('Client connected:', socket.id);
+      const handshakeRiotId = socket.handshake.auth?.riotId;
+      if (typeof handshakeRiotId === 'string' && handshakeRiotId.trim()) {
+        socket.data.playerName = handshakeRiotId.trim();
+      }
+
+      socket.on('set-identity', ({ riotId }) => {
+        if (typeof riotId !== 'string') return;
+        const trimmed = riotId.trim();
+        if (!trimmed) return;
+        socket.data.playerName = trimmed;
+      });
+
       socket.on('join-lobby', async ({ lobbyId, playerName }) => {
-        if (!lobbyId || !playerName) return;
+        const resolvedPlayerName =
+          (typeof playerName === 'string' && playerName.trim())
+          || (typeof socket.data.playerName === 'string' ? socket.data.playerName : '');
+
+        if (!lobbyId || !resolvedPlayerName) return;
 
         socket.join(lobbyId);
         socket.data.lobbyId = lobbyId;
 
         const player = await prisma.player.findUnique({
-          where: { riotId: playerName },
+          where: { riotId: resolvedPlayerName },
         });
 
         if (!player) return;
@@ -298,7 +336,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
       });
 
       socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
         leaveLobby(socket);
       });
 
@@ -309,7 +346,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
         });
 
         if (!lobby) return;
-        console.log(`Starting game for lobby ${lobbyId}`);
 
         try {
           await Promise.all(
@@ -364,7 +400,6 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           }
           lobbyScores.set(lobbyId, scoreMap);
 
-          console.log('All players synced successfully!');
           io.to(lobbyId).emit('start-game', { lobbyId });
           startRound(io, lobbyId);
         } catch (err) {

@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import championData from '@data/champions.json';
+import { setSocketRiotId } from '@utils/socket';
 import '@styles/riotId.css'; 
 
 const typedChampionData: Record<string, { name: string }> = championData;
@@ -68,6 +69,7 @@ export default function RiotProfilePage() {
       setError('Riot ID must be in the format Name#Tag (e.g. Faker#KR)');
       return () => controller.abort();
     }
+    setSocketRiotId(riotId);
 
     const fetchBaseData = async () => {
       setError('');
@@ -239,7 +241,7 @@ export default function RiotProfilePage() {
     }
 
     setError('');
-    localStorage.setItem('riotId', searchRiotId);
+    setSocketRiotId(searchRiotId);
     router.push(`/user/${encodeURIComponent(searchRiotId)}`);
   };
 
@@ -259,7 +261,7 @@ export default function RiotProfilePage() {
       });
 
       if (!res.ok) throw new Error('Failed to join lobby');
-      localStorage.setItem('riotId', riotId);
+      setSocketRiotId(riotId);
       const joinedLobby = await res.json();
       setLobby(joinedLobby);
       router.push(`/lobby/${joinedLobby.id}`);
@@ -270,7 +272,7 @@ export default function RiotProfilePage() {
 
   const handleNavigateToProfile = (targetRiotId: string) => {
     setShowPopup(false);
-    localStorage.setItem('riotId', targetRiotId);
+    setSocketRiotId(targetRiotId);
     router.push(`/user/${encodeURIComponent(targetRiotId)}`);
   };
 
