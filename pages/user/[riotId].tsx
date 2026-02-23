@@ -415,7 +415,10 @@ export default function RiotProfilePage() {
             Last {winrateData.gamesAnalyzed}{' '}
             {queueFilter === 'ranked' ? 'Ranked Solo/Duo Games' : 'Games'})
           </h3>
-          <p>{winrateData.winrate}% — {winrateData.wins}W / {winrateData.losses}L</p>
+          <p>
+            {winrateData.winrate}% — {winrateData.wins}W / {winrateData.losses}L
+            {typeof winrateData.remakes === 'number' ? ` / ${winrateData.remakes}R` : ''}
+          </p>
           <p>Total Kills: {winrateData.totalKills}</p>
           <p>Total Deaths: {winrateData.totalDeaths}</p>
           <p>Most Kills in a Game: {winrateData.mostKills}</p>
@@ -449,11 +452,12 @@ export default function RiotProfilePage() {
               const champName = stats.champName;
               const sanitizedChampName = specialCases[champName]
                     || champName.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
-              const isWin = stats.win;
+              const result: 'win' | 'loss' | 'remake' = stats.result ?? (stats.win ? 'win' : 'loss');
               const queueType = queueTypeMap[stats.queueType] || `Unknown Queue, Queue ID: ${stats.queueType}`;
               const timeAgo = formatTimeAgo(stats.endGameTime);
+              const resultLabel = result === 'win' ? 'Victory' : result === 'loss' ? 'Defeat' : 'Remake';
               return(
-                <li key={idx} className={`match-card ${isWin ? 'win' : 'loss'}`} onClick={() => { setSelectedMatch(stats); setShowPopup(true); }}>
+                <li key={idx} className={`match-card ${result}`} onClick={() => { setSelectedMatch(stats); setShowPopup(true); }}>
                   <div className="champion-section">
                     <img
                       src={`/img/champions/${sanitizedChampName}.png`}
@@ -468,7 +472,7 @@ export default function RiotProfilePage() {
                     <span className="kda">
                       {stats.kills} / {stats.deaths} / {stats.assists} / CS: {stats.creepScore}
                     </span>
-                    <span className="result">{isWin ? 'Victory' : 'Defeat'}</span>
+                    <span className="result">{resultLabel}</span>
                   </div>
                 </li>
               );

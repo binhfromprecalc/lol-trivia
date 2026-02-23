@@ -115,6 +115,8 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
   const matches = await fetchMatchesByIds(matchIds);
 
   let wins = 0;
+  let losses = 0;
+  let remakes = 0;
   let totalDeaths = 0;
   let totalKills = 0;
   let mostKills = 0;
@@ -136,6 +138,7 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
     deaths: number;
     assists: number;
     creepScore: number;
+    result: 'win' | 'loss' | 'remake';
     win: boolean;
     participantStats: Record<string, {
       riotId: string;
@@ -162,7 +165,10 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
     processedMatches++;
 
     const champName = participant.championName;
-    const won = participant.win;
+    const isRemake = Boolean(participant.gameEndedInEarlySurrender);
+    const result: 'win' | 'loss' | 'remake' = isRemake
+      ? 'remake'
+      : (participant.win ? 'win' : 'loss');
     const kills = participant.kills;
     const deaths = participant.deaths;
     const creepScore = participant.totalMinionsKilled + participant.neutralMinionsKilled;
@@ -172,7 +178,9 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
 
     totalKills += kills;
     totalDeaths += deaths;
-    if (won) wins++;
+    if (result === 'win') wins++;
+    if (result === 'loss') losses++;
+    if (result === 'remake') remakes++;
 
     championsPlayed[champName] = (championsPlayed[champName] || 0) + 1;
 
@@ -181,7 +189,7 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
     }
 
     championStats[champName].games++;
-    if (won) championStats[champName].wins++;
+    if (result === 'win') championStats[champName].wins++;
     championStats[champName].kills += kills;
     championStats[champName].deaths += deaths;
     championStats[champName].assists += participant.assists;
@@ -223,7 +231,8 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
       assists: participant.assists,
       creepScore,
       endGameTime: match.info.gameEndTimestamp,
-      win: won,
+      result,
+      win: result === 'win',
       participantStats
     };
   });
@@ -232,11 +241,14 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
     throw new Error(`Incomplete match data: expected ${matchIds.length}, processed ${processedMatches}`);
   }
 
+  const decidedGames = wins + losses;
+
   return {
     gamesAnalyzed: processedMatches,
-    winrate: (processedMatches > 0 ? (wins / processedMatches) * 100 : 0).toFixed(2),
+    winrate: (decidedGames > 0 ? (wins / decidedGames) * 100 : 0).toFixed(2),
     wins,
-    losses: Math.max(processedMatches - wins, 0),
+    losses,
+    remakes,
     totalKills,
     totalDeaths,
     mostKills,
