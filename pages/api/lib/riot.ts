@@ -6,6 +6,10 @@ const MATCH_DETAILS_CONCURRENCY = 4;
 const MATCH_DETAILS_MAX_RETRIES = 5;
 const BASE_RETRY_DELAY_MS = 250;
 
+const riotClient = axios.create({
+  headers: { 'X-Riot-Token': RIOT_API_KEY || '' },
+});
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -20,9 +24,8 @@ async function fetchMatchByIdWithRetry(matchId: string) {
 
   for (let attempt = 1; attempt <= MATCH_DETAILS_MAX_RETRIES; attempt++) {
     try {
-      const res = await axios.get(
+      const res = await riotClient.get(
         `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
-        { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
       );
       return res.data;
     } catch (error: any) {
@@ -37,6 +40,7 @@ async function fetchMatchByIdWithRetry(matchId: string) {
 }
 
 async function fetchMatchesByIds(matchIds: string[]) {
+  if (matchIds.length === 0) return [];
   const results: any[] = new Array(matchIds.length);
   let cursor = 0;
 
@@ -54,25 +58,24 @@ async function fetchMatchesByIds(matchIds: string[]) {
 }
 
 export async function getAccountByRiotId(gameName: string, tagLine: string) {
-  const res = await axios.get(
-    `https://${ACCOUNT_REGION}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${(gameName)}/${(tagLine)}`,
-    { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
+  const encodedGameName = encodeURIComponent(gameName);
+  const encodedTagLine = encodeURIComponent(tagLine);
+  const res = await riotClient.get(
+    `https://${ACCOUNT_REGION}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodedGameName}/${encodedTagLine}`
   );
   return res.data;
 }
 
 export async function getSummonerByPUUID(puuid: string) {
-  const res = await axios.get(
+  const res = await riotClient.get(
     `https://${'na1'}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`,
-    { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
   );
   return res.data;
 }
 
 export async function getChampionMasteriesByPUUID(puuid: string, platformRegion: string) {
-  const res = await axios.get(
+  const res = await riotClient.get(
     `https://${platformRegion}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}`,
-    { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
   );
   const masteries = res.data;
   const champMasteries: Record<number, {championPoints: number}> = {};
@@ -85,9 +88,8 @@ export async function getChampionMasteriesByPUUID(puuid: string, platformRegion:
 }
 
 export async function getRankedEntriesByPUUID(puuid: string, platformRegion: string) {
-  const res = await axios.get(
+  const res = await riotClient.get(
     `https://${platformRegion}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`,
-    { headers: { 'X-Riot-Token': RIOT_API_KEY || '' } }
   );
   return res.data;
 }
@@ -101,16 +103,27 @@ export async function getWinrateByPUUID(puuid: string, queueType?: number) {
     query.set('queue', String(queueType));
   }
 
-  const matchIdsRes = await axios.get(
+  const matchIdsRes = await riotClient.get(
     `https://${ACCOUNT_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?${query.toString()}`,
-    {
-      headers: {
-        'X-Riot-Token': RIOT_API_KEY || '',
-      },
-    }
   );
 
   const matchIds: string[] = matchIdsRes.data;
+  if (matchIds.length === 0) {
+    return {
+      gamesAnalyzed: 0,
+      winrate: '0.00',
+      wins: 0,
+      losses: 0,
+      remakes: 0,
+      totalKills: 0,
+      totalDeaths: 0,
+      mostKills: 0,
+      mostDeaths: 0,
+      championsPlayed: {},
+      championStats: {},
+      matchStats: {},
+    };
+  }
 
   const matches = await fetchMatchesByIds(matchIds);
 

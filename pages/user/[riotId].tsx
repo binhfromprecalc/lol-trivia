@@ -27,7 +27,6 @@ export default function RiotProfilePage() {
   const [puuid, setPuuid] = useState('');
   const [platformRegion, setPlatformRegion] = useState('na1');
   const [isBaseLoading, setIsBaseLoading] = useState(false);
-  const [isWinrateLoading, setIsWinrateLoading] = useState(false);
   const baseRequestRef = useRef(0);
   const winrateRequestRef = useRef(0);
   const lastSyncedKeyRef = useRef('');
@@ -74,7 +73,6 @@ export default function RiotProfilePage() {
     const fetchBaseData = async () => {
       setError('');
       setIsBaseLoading(true);
-      setIsWinrateLoading(true);
       setData(null);
       setProfile(null);
       setMasteries([]);
@@ -132,7 +130,6 @@ export default function RiotProfilePage() {
       } catch (err: any) {
         if (err?.name === 'AbortError' || isStale()) return;
         setError(err.message);
-        setIsWinrateLoading(false);
       } finally {
         if (!isStale()) {
           setIsBaseLoading(false);
@@ -155,7 +152,6 @@ export default function RiotProfilePage() {
     const isStale = () => winrateRequestRef.current !== requestId || signal.aborted;
 
     const fetchWinrateData = async () => {
-      setIsWinrateLoading(true);
       setError('');
       try {
         const winrateParams = new URLSearchParams({ puuid });
@@ -173,10 +169,6 @@ export default function RiotProfilePage() {
       } catch (err: any) {
         if (err?.name === 'AbortError' || isStale()) return;
         setError(err.message);
-      } finally {
-        if (!isStale()) {
-          setIsWinrateLoading(false);
-        }
       }
     };
 
@@ -295,7 +287,7 @@ export default function RiotProfilePage() {
     });
   };
 
-  const isProfileLoading = isBaseLoading || isWinrateLoading;
+  const isProfileLoading = isBaseLoading;
 
   return (
     <>
@@ -318,7 +310,7 @@ export default function RiotProfilePage() {
       <h1 className="profile-title">Riot Profile for {gameName}#{tagLine}</h1>
       {error && <p className="error-text">{error}</p>}
       {isProfileLoading && (
-        <p className="empty-text">Loading profile, match history, and mastery data...</p>
+        <p className="empty-text">Loading profile data...</p>
       )}
 
       {!isProfileLoading && data && profile && (
@@ -390,6 +382,10 @@ export default function RiotProfilePage() {
       )}
 
       {/* Winrate */}
+      {!isProfileLoading && statsView === 'matches' && !winrateData && (
+        <p className="empty-text">Loading match history and winrate data...</p>
+      )}
+
       {!isProfileLoading && statsView === 'matches' && winrateData && (
         <div className="section">
           <div className="queue-filter-row">
