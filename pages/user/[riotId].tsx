@@ -52,7 +52,7 @@ export default function RiotProfilePage() {
     440: 'Ranked Flex',
     450: 'ARAM',
     400: 'Normal Draft Pick',
-    490: 'Quickplay',
+    480: 'Swiftplay',
     1700: 'Arena',
   };
 
@@ -84,7 +84,7 @@ export default function RiotProfilePage() {
 
       try {
         const accountRes = await fetch(
-          `/api/account?gameName=${encodeURIComponent(name)}&tagLine=${encodeURIComponent(tag)}`,
+          `/api/player/account?gameName=${encodeURIComponent(name)}&tagLine=${encodeURIComponent(tag)}`,
           { signal }
         );
         const accountResult = await accountRes.json();
@@ -101,13 +101,13 @@ export default function RiotProfilePage() {
         setPuuid(accountResult.puuid);
 
         const [profileRes, masteryRes, rankRes] = await Promise.all([
-          fetch(`/api/summoner?puuid=${encodeURIComponent(accountResult.puuid)}`, { signal }),
+          fetch(`/api/player/summoner?puuid=${encodeURIComponent(accountResult.puuid)}`, { signal }),
           fetch(
-            `/api/masteries?puuid=${encodeURIComponent(accountResult.puuid)}&platformRegion=${mappedPlatformRegion}`,
+            `/api/player/masteries?puuid=${encodeURIComponent(accountResult.puuid)}&platformRegion=${mappedPlatformRegion}`,
             { signal }
           ),
           fetch(
-            `/api/rank?puuid=${encodeURIComponent(accountResult.puuid)}&platformRegion=${mappedPlatformRegion}`,
+            `/api/player/rank?puuid=${encodeURIComponent(accountResult.puuid)}&platformRegion=${mappedPlatformRegion}`,
             { signal }
           ),
         ]);
@@ -159,7 +159,7 @@ export default function RiotProfilePage() {
           winrateParams.set('queueType', '420');
         }
 
-        const winrateRes = await fetch(`/api/winrate?${winrateParams.toString()}`, { signal });
+        const winrateRes = await fetch(`/api/player/winrate?${winrateParams.toString()}`, { signal });
         const winrateResult = await winrateRes.json();
         if (!winrateRes.ok) throw new Error(winrateResult.error || 'Error fetching winrate');
         if (isStale()) return;
@@ -371,12 +371,20 @@ export default function RiotProfilePage() {
         <div className="section">
           <h3 className="section-title">Ranked Info</h3>
           <ul className="list-box">
-            {rankEntries.map((entry, idx) => (
-              <li key={idx}>
-                {entry.queueType}: {entry.tier} {entry.rank} — {entry.leaguePoints} LP
-                ({entry.wins}W/{entry.losses}L) — {(entry.wins / (entry.wins + entry.losses) * 100).toFixed(2)}%
-              </li>
-            ))}
+            {rankEntries.map((entry, idx) => {
+              const queueTypeLabel = entry.queueType;
+              if(queueTypeLabel === 'RANKED_SOLO_5x5') {
+                entry.queueType = 'Ranked Solo/Duo';
+              } else if(queueTypeLabel === 'RANKED_FLEX_SR') {
+                entry.queueType = 'Ranked Flex';
+              }
+              return (
+                <li key={idx}>
+                  {entry.queueType}: {entry.tier} {entry.rank} — {entry.leaguePoints} LP
+                  ({entry.wins}W/{entry.losses}L) — {(entry.wins / (entry.wins + entry.losses) * 100).toFixed(2)}%
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

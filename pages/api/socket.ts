@@ -351,26 +351,26 @@ const ioHandler = (_: NextApiRequest, res: any) => {
           await Promise.all(
             lobby.players.map(async (player) => {
               const [gameName, tagLine] = [player.gameName, player.tagLine];
-              const acc = await fetch(`${PLACEHOLDER_URL}/api/account?gameName=${gameName}&tagLine=${tagLine}`);
+              const acc = await fetch(`${PLACEHOLDER_URL}/api/player/account?gameName=${gameName}&tagLine=${tagLine}`);
               const account = await acc.json();
               const profileRes = await fetch(
-                `${PLACEHOLDER_URL}/api/summoner?puuid=${encodeURIComponent(account.puuid)}`
+                `${PLACEHOLDER_URL}/api/player/summoner?puuid=${encodeURIComponent(account.puuid)}`
               );
               const profileResult = await profileRes.json();
               const masteriesRes = await fetch(
-                `${PLACEHOLDER_URL}/api/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+                `${PLACEHOLDER_URL}/api/player/masteries?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
               );
               const masteriesResult = await masteriesRes.json();
               const rankRes = await fetch(
-                `${PLACEHOLDER_URL}/api/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
+                `${PLACEHOLDER_URL}/api/player/rank?puuid=${encodeURIComponent(account.puuid)}&platformRegion=${tagLine}`
               );
               const rankResult = await rankRes.json();
               const winrateRes = await fetch(
-                `${PLACEHOLDER_URL}/api/winrate?puuid=${encodeURIComponent(account.puuid)}`
+                `${PLACEHOLDER_URL}/api/player/winrate?puuid=${encodeURIComponent(account.puuid)}`
               );
               const winrateResult = await winrateRes.json();
 
-              await fetch(`${PLACEHOLDER_URL}/api/sync`, {
+              await fetch(`${PLACEHOLDER_URL}/api/player/sync`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
